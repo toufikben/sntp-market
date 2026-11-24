@@ -72,7 +72,7 @@ fun SettingsSection(
         subtitle = stringResource(R.string.settings_battery_desc),
     ) {
         TextButton(onClick = onOpenBattery) {
-            Text("فتح", color = SntpColors.DeepGreen, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.settings_open), color = SntpColors.DeepGreen, fontWeight = FontWeight.Bold)
         }
     }
 

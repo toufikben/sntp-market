@@ -10,8 +10,8 @@
 
     <string name="market_name">Marché SNTP</string>
     <string name="market_area">El Hamiz · Dar El Beïda · Alger</string>
-    <string name="opens_at">Ouverture</string>
-    <string name="closes_at">Fermeture</string>
+    <string name="opens_at">Ouvre à %1$s</string>
+    <string name="closes_at">Ferme à %1$s</string>
     <string name="reason_label">Raison</string>
     <string name="confidence_label">Fiabilité</string>
     <string name="confirmers_count">%1$d commerçants ont confirmé</string>
@@ -21,6 +21,17 @@
     <string name="call_trusted">Appeler un commerçant de confiance</string>
     <string name="refresh">Actualiser</string>
 
+    <!-- Notifications -->
+    <string name="notif_channel_name">Notification du matin</string>
+    <string name="notif_channel_desc">État du marché SNTP avant ouverture</string>
+    <string name="notif_closes_at">Ferme à %1$s</string>
+    <string name="notif_opens_at">Ouvre à %1$s</string>
+    <string name="notif_no_confirmation">Aucune confirmation des commerçants pour l\'instant</string>
+    <string name="notif_seed_subtext">Horaire habituel — non confirmé</string>
+
+    <string name="vote_question">Le marché est-il ouvert maintenant ?</string>
+    <string name="vote_question_hint">Votre vote ne compte que si vous êtes près du marché</string>
+    <string name="vote_queued_count">%1$d vote(s) en attente, envoyés au retour du réseau</string>
     <string name="vote_open">Je suis au marché — ouvert</string>
     <string name="vote_closed">Le marché est fermé</string>
     <string name="vote_sent">Vote envoyé, merci</string>
@@ -75,6 +86,7 @@
     <string name="settings_battery">Empêcher la mise en veille</string>
     <string name="settings_battery_desc">Certains téléphones coupent les notifications</string>
     <string name="settings_recovery">Code de récupération</string>
+    <string name="settings_open">Ouvrir</string>
     <string name="settings_recovery_desc">Conservez-le pour retrouver votre poids sur un autre téléphone</string>
     <string name="settings_reputation">Votre fiabilité</string>
     <string name="settings_about">À propos</string>

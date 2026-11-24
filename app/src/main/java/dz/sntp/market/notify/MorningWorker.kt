@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dz.sntp.market.SntpApp
-import dz.sntp.market.data.model.MarketState
+import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.repo.PendingVotes
 import dz.sntp.market.util.MarketTime
 
@@ -29,10 +29,10 @@ class MorningWorker(
         val state = app.marketRepository.loadState()
 
         // Only speak when there is something to say.
-        val statusKey = when (state.state) {
-            MarketState.OPEN -> "open"
-            MarketState.CLOSED -> "closed"
-            MarketState.UNKNOWN -> "unknown"
+        val statusKey = when (state.status) {
+            MarketStatus.OPEN -> "open"
+            MarketStatus.CLOSED -> "closed"
+            MarketStatus.UNKNOWN -> "unknown"
         }
 
         val shouldNotify = lastStatus != statusKey || lastDay == null

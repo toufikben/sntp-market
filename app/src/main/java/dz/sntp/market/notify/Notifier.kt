@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import dz.sntp.market.MainActivity
 import dz.sntp.market.R
 import dz.sntp.market.data.model.MarketState
+import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Source
 
 object Notifier {
@@ -29,10 +30,10 @@ object Notifier {
 
         val channel = NotificationChannel(
             CHANNEL_DAILY,
-            "إشعار الصباح",
+            context.getString(R.string.notif_channel_name),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "حالة سوق سانتيبي قبل الفتح"
+            description = context.getString(R.string.notif_channel_desc)
             enableVibration(true)
             setShowBadge(true)
         }
@@ -59,20 +60,22 @@ object Notifier {
 
         val title: String
         val body: String
-        when (state.state) {
-            MarketState.OPEN -> {
+        when (state.status) {
+            MarketStatus.OPEN -> {
                 title = context.getString(R.string.status_open)
-                body = state.closesAtLocal?.let { "يغلق على $it" }
+                body = state.closesAtLocal
+                    ?.let { context.getString(R.string.notif_closes_at, it) }
                     ?: context.getString(R.string.trust_traders)
             }
-            MarketState.CLOSED -> {
+            MarketStatus.CLOSED -> {
                 title = context.getString(R.string.status_closed)
-                body = state.opensAtLocal?.let { "الفتح $it" }
+                body = state.opensAtLocal
+                    ?.let { context.getString(R.string.notif_opens_at, it) }
                     ?: context.getString(R.string.settings_disclaimer)
             }
-            MarketState.UNKNOWN -> {
+            MarketStatus.UNKNOWN -> {
                 title = context.getString(R.string.status_unknown)
-                body = "لا يوجد تأكيد من التجار بعد"
+                body = context.getString(R.string.notif_no_confirmation)
             }
         }
 
@@ -94,7 +97,7 @@ object Notifier {
             .setContentIntent(pending)
 
         if (state.source == Source.SEED) {
-            builder.setSubText("جدول معتاد — غير مؤكد")
+            builder.setSubText(context.getString(R.string.notif_seed_subtext))
         }
 
         runCatching {

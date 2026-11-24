@@ -38,14 +38,14 @@ fun VoteSection(
     onVote: (String) -> Unit,
 ) {
     Text(
-        text = "هل السوق مفتوح الآن؟",
+        text = stringResource(R.string.vote_question),
         style = MaterialTheme.typography.titleLarge,
         color = SntpColors.TextPrimary,
         fontWeight = FontWeight.Bold,
     )
     Spacer(Modifier.height(4.dp))
     Text(
-        text = "صوّتك يُحسب فقط إذا كنت قريباً من السوق",
+        text = stringResource(R.string.vote_question_hint),
         style = MaterialTheme.typography.labelSmall,
         color = SntpColors.TextSecondary,
     )
@@ -81,7 +81,7 @@ fun VoteSection(
                 .padding(10.dp),
         ) {
             Text(
-                text = "$pending تصويت في الانتظار سيُرسل عند عودة الشبكة",
+                text = stringResource(R.string.vote_queued_count, pending),
                 style = MaterialTheme.typography.labelSmall,
                 color = SntpColors.Unknown,
                 textAlign = TextAlign.Center,

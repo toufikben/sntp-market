@@ -6,6 +6,7 @@ import dz.sntp.market.data.model.DaySchedule
 import dz.sntp.market.data.model.Freshness
 import dz.sntp.market.data.model.MarketState
 import dz.sntp.market.data.model.MarketStateDto
+import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Shop
 import dz.sntp.market.data.model.ShopDto
 import dz.sntp.market.data.model.Source
@@ -51,9 +52,12 @@ class MarketRepository(
     suspend fun loadState(): MarketState = withContext(Dispatchers.IO) {
         val remote = fetchState()
         if (remote != null) {
-            val normalized = remote.copy(freshness = Freshness.LIVE)
-            prefs.saveCachedState(json.encodeToString(MarketStateDto.serializer(), remote.toDto()), System.currentTimeMillis())
-            return@withContext normalized
+            val domain = remote.toDomain(Freshness.LIVE, System.currentTimeMillis())
+            prefs.saveCachedState(
+                json.encodeToString(MarketStateDto.serializer(), remote),
+                System.currentTimeMillis(),
+            )
+            return@withContext domain
         }
 
         val (cachedJson, cachedAt) = prefs.cachedState()
@@ -65,7 +69,9 @@ class MarketRepository(
         }
 
         if (cachedJson != null) {
-            val dto = runCatching { json.decodeFromString(MarketStateDto.serializer(), cachedJson) }.getOrNull()
+            val dto = runCatching {
+                json.decodeFromString(MarketStateDto.serializer(), cachedJson)
+            }.getOrNull()
             if (dto != null) return@withContext dto.toDomain(freshness, cachedAt)
         }
 
@@ -80,7 +86,9 @@ class MarketRepository(
         ).getOrNull() ?: return null
 
         return runCatching {
-            val arr = json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(MarketStateDto.serializer()), body)
+            val arr = json.decodeFromString(
+                kotlinx.serialization.builtins.ListSerializer(MarketStateDto.serializer()), body
+            )
             arr.firstOrNull()
         }.getOrNull()
     }
@@ -91,10 +99,10 @@ class MarketRepository(
         val nowMin = MarketTime.nowMinutes()
         val within = MarketTime.isWithin(day?.open, day?.close, nowMin)
         return MarketState(
-            state = when {
-                day?.open == null -> dz.sntp.market.data.model.MarketState.CLOSED
-                within -> dz.sntp.market.data.model.MarketState.OPEN
-                else -> dz.sntp.market.data.model.MarketState.CLOSED
+            status = when {
+                day?.open == null -> MarketStatus.CLOSED
+                within -> MarketStatus.OPEN
+                else -> MarketStatus.CLOSED
             },
             opensAtLocal = day?.open,
             closesAtLocal = day?.close,
@@ -210,10 +218,10 @@ class MarketRepository(
 }
 
 private fun MarketStateDto.toDomain(freshness: Freshness, cachedAt: Long) = MarketState(
-    state = when (status.lowercase()) {
-        "open" -> dz.sntp.market.data.model.MarketState.OPEN
-        "closed" -> dz.sntp.market.data.model.MarketState.CLOSED
-        else -> dz.sntp.market.data.model.MarketState.UNKNOWN
+    status = when (status.lowercase()) {
+        "open" -> MarketStatus.OPEN
+        "closed" -> MarketStatus.CLOSED
+        else -> MarketStatus.UNKNOWN
     },
     opensAtLocal = opensAt,
     closesAtLocal = closesAt,
@@ -229,8 +237,6 @@ private fun MarketStateDto.toDomain(freshness: Freshness, cachedAt: Long) = Mark
     updatedAtEpochMs = cachedAt.takeIf { it > 0 },
     freshness = freshness,
 )
-
-private fun MarketStateDto.toDto() = this
 
 private fun ShopDto.toDomain() = Shop(
     id = id,

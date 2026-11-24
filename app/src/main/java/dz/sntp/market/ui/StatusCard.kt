@@ -1,7 +1,6 @@
-package dz.sntp.market.ui
+﻿package dz.sntp.market.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import dz.sntp.market.R
 import dz.sntp.market.data.model.Freshness
 import dz.sntp.market.data.model.MarketState
+import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Source
 import dz.sntp.market.ui.theme.SntpColors
 import dz.sntp.market.util.MarketTime
@@ -52,15 +52,15 @@ fun MarketHeader() {
 @Composable
 fun StatusCard(ui: UiState) {
     val s = ui.state
-    val accent = when (s.state) {
-        MarketState.OPEN -> SntpColors.Open
-        MarketState.CLOSED -> SntpColors.Closed
-        MarketState.UNKNOWN -> SntpColors.Unknown
+    val accent = when (s.status) {
+        MarketStatus.OPEN -> SntpColors.Open
+        MarketStatus.CLOSED -> SntpColors.Closed
+        MarketStatus.UNKNOWN -> SntpColors.Unknown
     }
-    val bg = when (s.state) {
-        MarketState.OPEN -> SntpColors.OpenBg
-        MarketState.CLOSED -> SntpColors.ClosedBg
-        MarketState.UNKNOWN -> SntpColors.UnknownBg
+    val bg = when (s.status) {
+        MarketStatus.OPEN -> SntpColors.OpenBg
+        MarketStatus.CLOSED -> SntpColors.ClosedBg
+        MarketStatus.UNKNOWN -> SntpColors.UnknownBg
     }
 
     Box(
@@ -95,20 +95,21 @@ fun StatusCard(ui: UiState) {
 }
 
 @Composable
-private fun statusText(s: MarketState): String = when (s.state) {
-    MarketState.OPEN -> stringResource(R.string.status_open)
-    MarketState.CLOSED -> stringResource(R.string.status_closed)
-    MarketState.UNKNOWN -> if (s.opensAtLocal == null && s.confidence <= 0.0) {
+private fun statusText(s: MarketState): String = when (s.status) {
+    MarketStatus.OPEN -> stringResource(R.string.status_open)
+    MarketStatus.CLOSED -> stringResource(R.string.status_closed)
+    MarketStatus.UNKNOWN -> if (s.opensAtLocal == null && s.confidence <= 0.0) {
         stringResource(R.string.status_no_data)
     } else {
         stringResource(R.string.status_unknown)
     }
 }
 
-private fun primaryTimeLine(s: MarketState): String? = when (s.state) {
-    MarketState.OPEN -> s.closesAtLocal?.let { "يغلق $it" }
-    MarketState.CLOSED -> s.opensAtLocal?.let { "يفتح $it" }
-    MarketState.UNKNOWN -> null
+@Composable
+private fun primaryTimeLine(s: MarketState): String? = when (s.status) {
+    MarketStatus.OPEN -> s.closesAtLocal?.let { stringResource(R.string.closes_at, it) }
+    MarketStatus.CLOSED -> s.opensAtLocal?.let { stringResource(R.string.opens_at, it) }
+    MarketStatus.UNKNOWN -> null
 }
 
 @Composable
@@ -128,7 +129,7 @@ fun DetailRows(ui: UiState) {
 
     InfoRow(
         label = stringResource(R.string.confidence_label),
-        value = confidenceText(s, ui),
+        value = confidenceText(s),
     )
 
     if (s.reportersCount > 0) {
@@ -185,9 +186,9 @@ private fun InfoRow(label: String, value: String, dim: Boolean = false) {
 private fun reasonText(s: MarketState): String? =
     s.reasonAr?.takeIf { it.isNotBlank() } ?: s.reasonFr?.takeIf { it.isNotBlank() }
 
-private fun confidenceText(s: MarketState, ui: UiState): String = when {
+private fun confidenceText(s: MarketState): String = when {
     s.source == Source.ADMIN -> "100%"
-    s.confidence <= 0.0 -> if (ui.configured) "—" else "—"
+    s.confidence <= 0.0 -> "—"
     else -> "${(s.confidence * 100).toInt()}%"
 }
 

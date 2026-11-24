@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** What the market is doing right now. */
-enum class MarketState { OPEN, CLOSED, UNKNOWN }
+enum class MarketStatus { OPEN, CLOSED, UNKNOWN }
 
 /** Where the information came from — drives the trust strip. */
 enum class Source { ADMIN, TRADERS, SEED }
@@ -43,7 +43,7 @@ data class MarketStateDto(
  * screen can never silently present old data as current.
  */
 data class MarketState(
-    val state: MarketState,
+    val status: MarketStatus,
     val opensAtLocal: String?,
     val closesAtLocal: String?,
     val reasonAr: String?,
@@ -58,7 +58,7 @@ data class MarketState(
 
     companion object {
         fun unknown(freshness: Freshness) = MarketState(
-            state = MarketState.UNKNOWN,
+            status = MarketStatus.UNKNOWN,
             opensAtLocal = null,
             closesAtLocal = null,
             reasonAr = null,

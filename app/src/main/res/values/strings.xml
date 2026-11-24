@@ -12,8 +12,8 @@
     <!-- Main screen -->
     <string name="market_name">سوق سانتيبي SNTP</string>
     <string name="market_area">الحميز · الدار البيضاء · الجزائر العاصمة</string>
-    <string name="opens_at">الفتح</string>
-    <string name="closes_at">الإغلاق</string>
+    <string name="opens_at">يفتح %1$s</string>
+    <string name="closes_at">يغلق %1$s</string>
     <string name="reason_label">السبب</string>
     <string name="confidence_label">نسبة الموثوقية</string>
     <string name="confirmers_count">%1$d تاجراً أكّدوا</string>
@@ -23,7 +23,18 @@
     <string name="call_trusted">اتصل بتاجر موثّق</string>
     <string name="refresh">تحديث</string>
 
+    <!-- Notifications -->
+    <string name="notif_channel_name">إشعار الصباح</string>
+    <string name="notif_channel_desc">حالة سوق سانتيبي قبل الفتح</string>
+    <string name="notif_closes_at">يغلق على %1$s</string>
+    <string name="notif_opens_at">الفتح على %1$s</string>
+    <string name="notif_no_confirmation">لا يوجد تأكيد من التجار بعد</string>
+    <string name="notif_seed_subtext">جدول معتاد — غير مؤكد</string>
+
     <!-- Voting -->
+    <string name="vote_question">هل السوق مفتوح الآن؟</string>
+    <string name="vote_question_hint">صوّتك يُحسب فقط إذا كنت قريباً من السوق</string>
+    <string name="vote_queued_count">%1$d تصويت في الانتظار سيُرسل عند عودة الشبكة</string>
     <string name="vote_open">أنا في السوق — مفتوح</string>
     <string name="vote_closed">السوق مغلق</string>
     <string name="vote_sent">تم إرسال تصويتك، شكراً</string>
@@ -82,6 +93,7 @@
     <string name="settings_language">اللغة</string>
     <string name="settings_battery">منع إيقاف التطبيق</string>
     <string name="settings_battery_desc">بعض الهواتف توقف الإشعارات. اضغط للسماح بالعمل في الخلفية</string>
+    <string name="settings_open">فتح</string>
     <string name="settings_recovery">كود استرجاع السمعة</string>
     <string name="settings_recovery_desc">احفظه لاستعادة وزنك عند تغيير الهاتف</string>
     <string name="settings_reputation">موثوقيتك</string>

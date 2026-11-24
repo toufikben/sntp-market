@@ -10,19 +10,22 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.io.File
 import java.util.UUID
 
 private val Context.dataStore by preferencesDataStore(name = "sntp_prefs")
 
 /**
- * Everything that must survive a relaunch lives here. Deliberately small and
- * synchronous-friendly: the launch path reads it once before any network call.
+ * Everything that must survive a relaunch lives here. Deliberately small: the
+ * launch path reads it once before any network call.
+ *
+ * Device identity and the recovery code are plain files rather than DataStore
+ * entries because they are read synchronously from Application.onCreate, where a
+ * suspend call is not available.
  */
 class Prefs(private val context: Context) {
 
     private object K {
-        val DEVICE_ID = stringPreferencesKey("device_id")
-        val RECOVERY_CODE = stringPreferencesKey("recovery_code")
         val REPUTATION = intPreferencesKey("reputation_x100")
         val LAST_VOTE_DAY = stringPreferencesKey("last_vote_day")
         val CACHED_STATE = stringPreferencesKey("cached_state_json")
@@ -34,64 +37,53 @@ class Prefs(private val context: Context) {
         val NOTIFY_MINUTE = intPreferencesKey("notify_minute")
         val LAST_NOTIFIED_DAY = stringPreferencesKey("last_notified_day")
         val LAST_NOTIFIED_STATUS = stringPreferencesKey("last_notified_status")
-        val SEEDED = booleanPreferencesKey("seeded_v1")
-        val ANON_TOKEN = stringPreferencesKey("anon_token")
-        val ANON_REFRESH = stringPreferencesKey("anon_refresh")
     }
 
-    val deviceId: String
-        get() = runCatching {
-            var id = ""
-            // Cheap synchronous read guarded by the DataStore file itself.
-            val f = java.io.File(context.filesDir, "datastore/sntp_prefs.preferences_pb")
-            if (f.exists()) id = ""
-            id
-        }.getOrDefault("").ifBlank { ensureDeviceId() }
+    // ------------------------------------------------------------- identity
 
-    /** Blocking-safe, called from Application.onCreate only. */
-    private fun ensureDeviceId(): String {
-        val f = java.io.File(context.filesDir, "device_id.txt")
-        if (f.exists()) {
-            val t = f.readText().trim()
-            if (t.length >= 8) return t
+    /** Stable per-install identity. Sent with every report, never leaves the device otherwise. */
+    val deviceId: String by lazy { readOrCreate("device_id.txt", 16) }
+
+    /**
+     * Printed once in settings so a trader who changes phone can carry their
+     * reputation across. Blocks of four, unambiguous alphabet.
+     */
+    fun recoveryCode(): String = readOrCreate("recovery_code.txt", 12, alphabet = CODE_ALPHABET)
+
+    private fun readOrCreate(
+        name: String,
+        length: Int,
+        alphabet: String = HEX,
+    ): String {
+        val file = File(context.filesDir, name)
+        val existing = runCatching { file.readText().trim() }.getOrNull()
+        if (!existing.isNullOrBlank() && existing.length >= 8) return existing
+
+        val fresh = buildString {
+            val rnd = java.security.SecureRandom()
+            repeat(length) { append(alphabet[rnd.nextInt(alphabet.length)]) }
         }
-        val fresh = UUID.randomUUID().toString().replace("-", "")
-        runCatching { f.writeText(fresh) }
+        runCatching { file.writeText(fresh) }
         return fresh
     }
 
-    fun recoveryCode(): String =
-        runCatching { java.io.File(context.filesDir, "recovery_code.txt").readText().trim() }
-            .getOrDefault("")
-            .ifBlank { "—" }
+    // -------------------------------------------------------------- voting
 
-    fun saveRecoveryCode(code: String) {
-        runCatching { java.io.File(context.filesDir, "recovery_code.txt").writeText(code) }
-    }
-
-    fun anonToken(): String? = runCatching {
-        java.io.File(context.filesDir, "anon.txt").readText().trim()
-    }.getOrNull()?.takeIf { it.isNotBlank() }
-
-    fun saveAnonToken(access: String?, refresh: String?) {
-        runCatching {
-            java.io.File(context.filesDir, "anon.txt").writeText(
-                "access=$access\nrefresh=$refresh"
-            )
-        }
-    }
-
-    suspend fun lastVoteDay(): String? = context.dataStore.data.map { it[K.LAST_VOTE_DAY] }.first()
+    suspend fun lastVoteDay(): String? =
+        context.dataStore.data.map { it[K.LAST_VOTE_DAY] }.first()
 
     suspend fun setLastVoteDay(day: String) {
         context.dataStore.edit { it[K.LAST_VOTE_DAY] = day }
     }
 
-    suspend fun reputation(): Int = context.dataStore.data.map { it[K.REPUTATION] ?: 100 }.first()
+    suspend fun reputation(): Int =
+        context.dataStore.data.map { it[K.REPUTATION] ?: 100 }.first()
 
     suspend fun setReputation(v: Int) {
         context.dataStore.edit { it[K.REPUTATION] = v }
     }
+
+    // --------------------------------------------------------------- cache
 
     suspend fun cachedState(): Pair<String?, Long> {
         val d = context.dataStore.data.first()
@@ -105,17 +97,21 @@ class Prefs(private val context: Context) {
         }
     }
 
-    suspend fun cachedWeek(): String? = context.dataStore.data.map { it[K.CACHED_WEEK] }.first()
+    suspend fun cachedWeek(): String? =
+        context.dataStore.data.map { it[K.CACHED_WEEK] }.first()
 
     suspend fun saveCachedWeek(json: String) {
         context.dataStore.edit { it[K.CACHED_WEEK] = json }
     }
 
-    suspend fun cachedShops(): String? = context.dataStore.data.map { it[K.CACHED_SHOPS] }.first()
+    suspend fun cachedShops(): String? =
+        context.dataStore.data.map { it[K.CACHED_SHOPS] }.first()
 
     suspend fun saveCachedShops(json: String) {
         context.dataStore.edit { it[K.CACHED_SHOPS] = json }
     }
+
+    // -------------------------------------------------------- notifications
 
     val notifyEnabled: Flow<Boolean> = context.dataStore.data.map { it[K.NOTIFY_ENABLED] ?: true }
 
@@ -134,6 +130,7 @@ class Prefs(private val context: Context) {
         }
     }
 
+    /** Last (day, status) we already told the user about. Drives "only when it changed". */
     suspend fun lastNotified(): Pair<String?, String?> {
         val d = context.dataStore.data.first()
         return d[K.LAST_NOTIFIED_DAY] to d[K.LAST_NOTIFIED_STATUS]
@@ -144,5 +141,11 @@ class Prefs(private val context: Context) {
             it[K.LAST_NOTIFIED_DAY] = day
             it[K.LAST_NOTIFIED_STATUS] = status
         }
+    }
+
+    private companion object {
+        const val HEX = "0123456789abcdef"
+        /** No 0/O or 1/I: this string gets read aloud over the phone. */
+        const val CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
     }
 }
