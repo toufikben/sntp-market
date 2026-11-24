@@ -1,9 +1,12 @@
 package dz.sntp.market.ui
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +30,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +55,43 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // A vote needs a GPS fix. Nothing asked for the permission, so the first tap
+    // on a vote button always ended in "we need your location" with no way to
+    // give it. The tap is remembered and replayed once the user answers.
+    var pendingVote by remember { mutableStateOf<String?>(null) }
+    val locationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val granted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val status = pendingVote
+        pendingVote = null
+        if (granted && status != null) {
+            vm.vote(status, ui.state.opensAtLocal, ui.state.closesAtLocal, null)
+        }
+    }
+
+    fun voteWithPermission(status: String) {
+        val fine = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (fine || coarse) {
+            vm.vote(status, ui.state.opensAtLocal, ui.state.closesAtLocal, null)
+        } else {
+            pendingVote = status
+            locationPermission.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                )
+            )
+        }
+    }
+
     // Channel + daily job must exist before the first morning.
     LaunchedEffect(Unit) {
         Notifier.ensureChannel(context)
@@ -68,7 +112,7 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         ) {
             Box(Modifier.weight(1f)) {
                 when (ui.tab) {
-                    0 -> TodayTab(ui, vm)
+                    0 -> TodayTab(ui, vm, ::voteWithPermission)
                     1 -> ScrollTab { WeekSection(ui.week) }
                     2 -> ScrollTab {
                         ShopsSection(
@@ -109,7 +153,7 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
 }
 
 @Composable
-private fun TodayTab(ui: UiState, vm: MainViewModel) {
+private fun TodayTab(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
@@ -128,7 +172,7 @@ private fun TodayTab(ui: UiState, vm: MainViewModel) {
         VoteSection(
             voting = ui.voting,
             pending = ui.pendingVotes,
-            onVote = { status -> vm.vote(status, ui.state.opensAtLocal, ui.state.closesAtLocal, null) },
+            onVote = onVote,
         )
         Spacer(Modifier.height(20.dp))
         TextButton(
