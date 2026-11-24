@@ -203,16 +203,24 @@ private fun sourceText(s: MarketState): String = when (s.source) {
 @Composable
 private fun todayLabel(): String {
     val d = MarketTime.today()
-    return MarketTime.dateLabel(d, currentLocale())
+    return MarketTime.dateLabel(d, displayLocale())
 }
 
 /**
- * The app locale, not the device locale. The phone may be set to English while
- * the app itself is showing Arabic, and an English date inside an Arabic screen
- * is exactly the kind of mismatch that makes an app look careless.
+ * The locale the visible strings are actually in, not the phone's locale.
+ *
+ * This app ships two string sets: `values/` (Arabic, the default) and
+ * `values-fr/`. A phone set to English therefore shows Arabic while its locale
+ * is "en" — and formatting the date with "en" printed an English date inside an
+ * Arabic screen. Anything that is not French resolves to Arabic, which is
+ * exactly how the resources resolve.
  */
 @Composable
-internal fun currentLocale(): java.util.Locale =
-    androidx.core.os.ConfigurationCompat.getLocales(LocalConfiguration.current)[0]
-        ?: java.util.Locale.getDefault()
+internal fun displayLocale(): java.util.Locale {
+    val device = androidx.core.os.ConfigurationCompat.getLocales(LocalConfiguration.current)[0]
+    return if (device?.language == "fr") java.util.Locale.FRENCH else ARABIC
+}
+
+internal val ARABIC: java.util.Locale = java.util.Locale.forLanguageTag("ar-DZ")
+
 

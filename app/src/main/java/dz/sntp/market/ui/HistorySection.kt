@@ -53,7 +53,7 @@ fun HistorySection(history: Map<String, String>) {
     Spacer(Modifier.height(16.dp))
 
     Text(
-        text = MarketTime.monthLabel(month, currentLocale()),
+        text = MarketTime.monthLabel(month, displayLocale()),
         style = MaterialTheme.typography.titleLarge,
         color = SntpColors.DeepGreen,
         fontWeight = FontWeight.Black,
@@ -131,4 +131,5 @@ private fun DayCell(date: LocalDate, status: String?, isToday: Boolean) {
         )
     }
 }
+
 
