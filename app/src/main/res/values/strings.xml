@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">سانتيبي</string>
+
+    <!-- Status -->
+    <string name="status_open">السوق مفتوح</string>
+    <string name="status_closed">السوق مغلق</string>
+    <string name="status_soon">يفتح قريباً</string>
+    <string name="status_unknown">غير مؤكد</string>
+    <string name="status_no_data">لا بيانات اليوم</string>
+
+    <!-- Main screen -->
+    <string name="market_name">سوق سانتيبي SNTP</string>
+    <string name="market_area">الحميز · الدار البيضاء · الجزائر العاصمة</string>
+    <string name="opens_at">الفتح</string>
+    <string name="closes_at">الإغلاق</string>
+    <string name="reason_label">السبب</string>
+    <string name="confidence_label">نسبة الموثوقية</string>
+    <string name="confirmers_count">%1$d تاجراً أكّدوا</string>
+    <string name="updated_at">آخر تحديث %1$s</string>
+    <string name="stale_warning">آخر معلومة معروفة — غير مؤكدة الآن</string>
+    <string name="offline_warning">لا اتصال — تُعرض آخر معلومة محفوظة</string>
+    <string name="call_trusted">اتصل بتاجر موثّق</string>
+    <string name="refresh">تحديث</string>
+
+    <!-- Voting -->
+    <string name="vote_open">أنا في السوق — مفتوح</string>
+    <string name="vote_closed">السوق مغلق</string>
+    <string name="vote_sent">تم إرسال تصويتك، شكراً</string>
+    <string name="vote_queued">سيُرسل تصويتك عند عودة الاتصال</string>
+    <string name="vote_need_location">نحتاج موقعك للتأكد أنك قريب من السوق</string>
+    <string name="vote_too_far">أنت بعيد عن السوق، لا يمكن احتساب تصويتك</string>
+    <string name="vote_already">صوّتت بالفعل اليوم</string>
+    <string name="vote_rate_limited">محاولات كثيرة، حاول بعد قليل</string>
+
+    <!-- Trust -->
+    <string name="trust_admin">المصدر: إدارة السوق</string>
+    <string name="trust_traders">المصدر: تصويت التجار</string>
+    <string name="trust_seed">المصدر: جدول معتاد</string>
+
+    <!-- Week -->
+    <string name="tab_today">اليوم</string>
+    <string name="tab_week">الأسبوع</string>
+    <string name="tab_shops">المحلات</string>
+    <string name="tab_history">السجل</string>
+    <string name="tab_settings">الإعدادات</string>
+
+    <string name="week_title">جدول الأسبوع المعتاد</string>
+    <string name="week_note">الجدول المعتاد، وليس حالة اليوم</string>
+    <string name="closed_day">مغلق</string>
+    <string name="unknown_day">غير معروف</string>
+
+    <string name="day_sat">السبت</string>
+    <string name="day_sun">الأحد</string>
+    <string name="day_mon">الإثنين</string>
+    <string name="day_tue">الثلاثاء</string>
+    <string name="day_wed">الأربعاء</string>
+    <string name="day_thu">الخميس</string>
+    <string name="day_fri">الجمعة</string>
+
+    <!-- Shops -->
+    <string name="shops_title">محلات السوق</string>
+    <string name="shops_search">ابحث عن محل…</string>
+    <string name="shop_call">اتصال</string>
+    <string name="shop_whatsapp">واتساب</string>
+    <string name="shop_verified">موثّق</string>
+    <string name="shop_claim">تبنّي هذا المحل</string>
+    <string name="shop_phone_locked">رقم الهاتف</string>
+    <string name="shop_watch_ad">شاهد إعلاناً لإظهار الرقم</string>
+    <string name="shops_empty">لا توجد محلات محفوظة بعد</string>
+
+    <!-- History -->
+    <string name="history_title">سجل الحالات</string>
+    <string name="history_empty">لا سجل بعد</string>
+    <string name="history_legend">مفتوح · مغلق · غير مؤكد</string>
+
+    <!-- Settings -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_notify">إشعار الصباح</string>
+    <string name="settings_notify_desc">إشعار واحد صباحاً، وفقط إذا تغيّرت الحالة</string>
+    <string name="settings_notify_time">وقت الإشعار</string>
+    <string name="settings_language">اللغة</string>
+    <string name="settings_battery">منع إيقاف التطبيق</string>
+    <string name="settings_battery_desc">بعض الهواتف توقف الإشعارات. اضغط للسماح بالعمل في الخلفية</string>
+    <string name="settings_recovery">كود استرجاع السمعة</string>
+    <string name="settings_recovery_desc">احفظه لاستعادة وزنك عند تغيير الهاتف</string>
+    <string name="settings_reputation">موثوقيتك</string>
+    <string name="settings_about">حول التطبيق</string>
+    <string name="settings_disclaimer">معلومات غير رسمية يجمعها التجار. تحقّق قبل التنقل.</string>
+    <string name="settings_privacy">سياسة الخصوصية</string>
+    <string name="settings_version">الإصدار %1$s</string>
+    <string name="settings_plan_free">الخطة: مجاني</string>
+    <string name="settings_plan_pro">الخطة: Pro</string>
+    <string name="settings_plan_boutique">الخطة: Boutique</string>
+    <string name="settings_upgrade">ترقية</string>
+
+    <!-- Common -->
+    <string name="ok">حسناً</string>
+    <string name="cancel">إلغاء</string>
+    <string name="retry">إعادة المحاولة</string>
+    <string name="close">إغلاق</string>
+    <string name="loading">جارٍ التحميل…</string>
+    <string name="today">اليوم</string>
+    <string name="yesterday">أمس</string>
+</resources>

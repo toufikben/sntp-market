@@ -1,0 +1,601 @@
+-- =============================================================================
+--  SNTP — سوق سانتيبي · مخطط قاعدة البيانات
+--  Supabase / Postgres 15+
+--  شغّل هذا الملف مرة واحدة في SQL Editor.
+-- =============================================================================
+
+create extension if not exists "pgcrypto";
+create extension if not exists "pg_cron";
+
+-- -----------------------------------------------------------------------------
+-- 1. الأسواق
+-- -----------------------------------------------------------------------------
+create table if not exists public.markets (
+    id            text primary key,
+    slug          text unique not null,
+    name_ar       text not null,
+    name_fr       text not null,
+    area_ar       text,
+    area_fr       text,
+    lat           double precision not null,
+    lng           double precision not null,
+    timezone      text not null default 'Africa/Algiers',
+    vote_radius_m double precision not null default 1200,
+    far_radius_m  double precision not null default 5000,
+    active        boolean not null default true,
+    created_at    timestamptz not null default now()
+);
+
+insert into public.markets (id, slug, name_ar, name_fr, area_ar, area_fr, lat, lng)
+values (
+    'sntp-el-hamiz',
+    'sntp-el-hamiz',
+    'سوق سانتيبي SNTP',
+    'Marché SNTP',
+    'الحميز · الدار البيضاء · الجزائر العاصمة',
+    'El Hamiz · Dar El Beïda · Alger',
+    36.724663,
+    3.222052
+)
+on conflict (id) do nothing;
+
+-- -----------------------------------------------------------------------------
+-- 2. الجدول الأسبوعي المعتاد
+-- -----------------------------------------------------------------------------
+create table if not exists public.market_schedule (
+    market_slug text not null references public.markets(slug) on delete cascade,
+    day         int  not null check (day between 1 and 7),   -- 1 = الاثنين … 7 = الأحد
+    open        text,                                        -- 'HH24:MI' أو null = مغلق
+    close       text,
+    note_ar     text,
+    note_fr     text,
+    primary key (market_slug, day)
+);
+
+insert into public.market_schedule (market_slug, day, open, close, note_ar, note_fr) values
+    ('sntp-el-hamiz', 1, null,  null,  'معتاد الإغلاق — بعض المحلات تفتح صباحاً', 'Fermeture habituelle — certains ouvrent le matin'),
+    ('sntp-el-hamiz', 2, '07:00', '13:00', null, null),
+    ('sntp-el-hamiz', 3, '06:00', '17:00', 'أكثر الأيام ازدحاماً', 'Jour le plus chargé'),
+    ('sntp-el-hamiz', 4, '07:00', '12:00', 'التوقيت يتغيّر كثيراً', 'Horaire très variable'),
+    ('sntp-el-hamiz', 5, null,  null,  'إغلاق شبه كامل', 'Fermeture quasi totale'),
+    ('sntp-el-hamiz', 6, '06:00', '13:00', null, null),
+    ('sntp-el-hamiz', 7, '06:00', '13:00', null, null)
+on conflict (market_slug, day) do nothing;
+
+-- -----------------------------------------------------------------------------
+-- 3. المحلات
+-- -----------------------------------------------------------------------------
+create table if not exists public.shops (
+    id             text primary key,
+    market_slug    text not null references public.markets(slug) on delete cascade,
+    name           text not null,
+    category       text,
+    phone          text,
+    whatsapp       text,
+    shop_number    text,
+    lat            double precision,
+    lng            double precision,
+    is_verified    boolean not null default false,   -- تحقّقنا من المعلومة
+    verified_owner boolean not null default false,   -- المالك تبنّى المحل
+    owner_device   text,
+    claim_code     text,
+    claim_verified boolean not null default false,
+    active         boolean not null default true,
+    created_at     timestamptz not null default now()
+);
+
+create index if not exists shops_market_idx on public.shops (market_slug) where active;
+
+insert into public.shops (id, market_slug, name, category, phone, whatsapp, shop_number) values
+    ('sntp-001', 'sntp-el-hamiz', 'محلات SNTP للملابس الرجالية',            'ملابس رجالية', '+213658980632', '+213658980632', 'P6GC+85'),
+    ('sntp-002', 'sntp-el-hamiz', 'بيع ملابس بالجملة عند السعيد',           'ملابس بالجملة', null,           null,            'P6GC+RHJ'),
+    ('sntp-003', 'sntp-el-hamiz', 'SK 13 SNTP',                              'ملابس',        '+213777766681', '+213777766681', 'P6GC+43P'),
+    ('sntp-004', 'sntp-el-hamiz', 'Market Dz KK',                            'ملابس',        '+213772644553', '+213772644553', 'P6GC+9J8'),
+    ('sntp-005', 'sntp-el-hamiz', 'Tamim SNTP',                              'ملابس',        '+213550142552', '+213550142552', 'P6GC+R'),
+    ('sntp-006', 'sntp-el-hamiz', 'Ab Mode SNTP',                            'ملابس رجالية', null,           null,            'P6GC+Q'),
+    ('sntp-007', 'sntp-el-hamiz', 'شلبي للتسوق — أقمصة وهدايا الحج والعمرة', 'أقمصة وهدايا', '+213552508621', '+213552508621', 'P6G9+HW6')
+on conflict (id) do nothing;
+
+-- -----------------------------------------------------------------------------
+-- 4. الأجهزة والسمعة
+-- -----------------------------------------------------------------------------
+create table if not exists public.devices (
+    device_id     text primary key,
+    reputation    int  not null default 100,   -- 100 = عادي، 180 = موثوق جداً، 40 = مشكوك فيه
+    votes_total   int  not null default 0,
+    votes_agreed  int  not null default 0,     -- وافق الإجماع اللاحق
+    votes_dissented int not null default 0,
+    blocked       boolean not null default false,
+    recovery_hash text,
+    created_at    timestamptz not null default now(),
+    last_seen     timestamptz not null default now()
+);
+
+-- -----------------------------------------------------------------------------
+-- 5. التصويتات
+-- -----------------------------------------------------------------------------
+create table if not exists public.reports (
+    id          bigserial primary key,
+    market_slug text not null references public.markets(slug) on delete cascade,
+    status      text not null check (status in ('open','closed')),
+    opens_at    text,
+    closes_at   text,
+    reason      text,
+    device_id   text not null,
+    lat         double precision,
+    lng         double precision,
+    accuracy_m  double precision,
+    client_time timestamptz,
+    server_time timestamptz not null default now(),
+    distance_m  double precision,
+    weight      double precision,
+    counted     boolean not null default true
+);
+
+create index if not exists reports_market_time_idx on public.reports (market_slug, server_time desc);
+create index if not exists reports_device_idx on public.reports (device_id, server_time desc);
+
+-- -----------------------------------------------------------------------------
+-- 6. حالة السوق (الإجماع) + تجاوز الإدارة
+-- -----------------------------------------------------------------------------
+create table if not exists public.market_state (
+    market_slug     text primary key references public.markets(slug) on delete cascade,
+    status          text not null default 'unknown' check (status in ('open','closed','unknown')),
+    opens_at        text,
+    closes_at       text,
+    reason_ar       text,
+    reason_fr       text,
+    confidence      double precision not null default 0,
+    reporters_count int not null default 0,
+    source          text not null default 'seed' check (source in ('admin','traders','seed')),
+    updated_at      timestamptz not null default now()
+);
+
+insert into public.market_state (market_slug) values ('sntp-el-hamiz')
+on conflict (market_slug) do nothing;
+
+create table if not exists public.market_override (
+    market_slug text primary key references public.markets(slug) on delete cascade,
+    status      text not null check (status in ('open','closed')),
+    opens_at    text,
+    closes_at   text,
+    reason_ar   text,
+    reason_fr   text,
+    expires_at  timestamptz not null,
+    set_by      text,
+    updated_at  timestamptz not null default now()
+);
+
+-- -----------------------------------------------------------------------------
+-- 7. سجل الأيام (للتقويم الشهري)
+-- -----------------------------------------------------------------------------
+create table if not exists public.state_history (
+    market_slug text not null references public.markets(slug) on delete cascade,
+    day         date not null,
+    status      text not null,
+    opens_at    text,
+    closes_at   text,
+    confidence  double precision,
+    source      text,
+    updated_at  timestamptz not null default now(),
+    primary key (market_slug, day)
+);
+
+-- -----------------------------------------------------------------------------
+-- 8. الاشتراكات والاستحقاقات
+-- -----------------------------------------------------------------------------
+create table if not exists public.products (
+    sku        text primary key,
+    tier       text not null check (tier in ('pro','boutique')),
+    period     text not null check (period in ('monthly','yearly')),
+    price_dzd  int not null,
+    active     boolean not null default true
+);
+
+insert into public.products (sku, tier, period, price_dzd) values
+    ('pro_monthly',     'pro',      'monthly', 1000),
+    ('pro_yearly',      'pro',      'yearly',  9000),
+    ('boutique_monthly','boutique', 'monthly', 2500)
+on conflict (sku) do nothing;
+
+create table if not exists public.purchases (
+    id             bigserial primary key,
+    device_id      text not null,
+    sku            text not null,
+    purchase_token text unique not null,
+    order_id       text,
+    state          text not null,             -- ACTIVE / GRACE / ON_HOLD / PAUSED / EXPIRED
+    expires_at     timestamptz,
+    raw            jsonb,
+    created_at     timestamptz not null default now(),
+    updated_at     timestamptz not null default now()
+);
+
+create table if not exists public.entitlements (
+    device_id  text primary key,
+    tier       text not null check (tier in ('free','pro','boutique')),
+    source     text not null check (source in ('play','promo','admin')),
+    expires_at timestamptz,
+    updated_at timestamptz not null default now()
+);
+
+create table if not exists public.promo_grants (
+    id         bigserial primary key,
+    device_id  text not null unique,
+    tier       text not null default 'pro',
+    reason     text,
+    granted_at timestamptz not null default now()
+);
+
+create table if not exists public.billing_events (
+    id             bigserial primary key,
+    purchase_token text,
+    type           text,
+    received_at    timestamptz not null default now(),
+    payload        jsonb
+);
+
+-- -----------------------------------------------------------------------------
+-- 9. الرعاة وسجل الإدارة
+-- -----------------------------------------------------------------------------
+create table if not exists public.sponsors (
+    id         bigserial primary key,
+    slot       int not null,
+    name       text not null,
+    phone      text,
+    url        text,
+    starts_at  timestamptz not null default now(),
+    ends_at    timestamptz not null,
+    active     boolean not null default true
+);
+
+create table if not exists public.admin_actions (
+    id         bigserial primary key,
+    actor      text,
+    action     text not null,
+    market_slug text,
+    payload    jsonb,
+    created_at timestamptz not null default now()
+);
+
+-- =============================================================================
+--  المحرّك: وزن كل تصويت + الإجماع
+-- =============================================================================
+
+-- الوزن: القرب × السمعة × الحداثة. صفر خارج نطاق 5 كم.
+create or replace function public.report_weight(
+    p_distance double precision,
+    p_reputation int,
+    p_age_min double precision,
+    p_vote_radius double precision,
+    p_far_radius double precision
+) returns double precision
+language sql immutable as $$
+    select
+        (case
+            when p_distance is null then 0.0
+            when p_distance <= p_vote_radius then 1.0
+            when p_distance <= p_far_radius then 0.35
+            else 0.0
+         end)
+        *
+        (case
+            when p_reputation >= 180 then 1.8
+            when p_reputation >= 140 then 1.4
+            when p_reputation >= 80  then 1.0
+            when p_reputation >= 40  then 0.6
+            else 0.4
+         end)
+        *
+        (case
+            when p_age_min <= 45 then 1.0
+            when p_age_min <= 90 then 0.7
+            when p_age_min <= 180 then 0.4
+            else 0.0
+         end);
+$$;
+
+-- المسافة بالأمتار (haversine)
+create or replace function public.distance_m(
+    lat1 double precision, lng1 double precision,
+    lat2 double precision, lng2 double precision
+) returns double precision
+language sql immutable as $$
+    select 2 * 6371000 * asin(sqrt(
+        power(sin(radians(lat2 - lat1) / 2), 2) +
+        cos(radians(lat1)) * cos(radians(lat2)) *
+        power(sin(radians(lng2 - lng1) / 2), 2)
+    ));
+$$;
+
+-- إعادة حساب حالة سوق واحد. تُستدعى من cron ومن الـ trigger.
+create or replace function public.recompute_market_state(p_slug text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    m            public.markets%rowtype;
+    ov           public.market_override%rowtype;
+    v_open_w     double precision := 0;
+    v_closed_w   double precision := 0;
+    v_total_w    double precision := 0;
+    v_devices    int := 0;
+    v_conf       double precision := 0;
+    v_status     text := 'unknown';
+    v_opens      text := null;
+    v_closes     text := null;
+    v_source     text := 'traders';
+begin
+    select * into m from public.markets where slug = p_slug and active;
+    if not found then return; end if;
+
+    -- 1) تجاوز الإدارة يتقدّم دائماً
+    select * into ov from public.market_override
+     where market_slug = p_slug and expires_at > now();
+
+    if found then
+        update public.market_state set
+            status = ov.status,
+            opens_at = ov.opens_at,
+            closes_at = ov.closes_at,
+            reason_ar = ov.reason_ar,
+            reason_fr = ov.reason_fr,
+            confidence = 1.0,
+            reporters_count = 0,
+            source = 'admin',
+            updated_at = now()
+        where market_slug = p_slug;
+        return;
+    end if;
+
+    -- 2) التصويتات: أحدث تصويت لكل جهاز داخل آخر 3 ساعات
+    with latest as (
+        select distinct on (device_id)
+            device_id, status, opens_at, closes_at,
+            server_time, distance_m, weight
+        from public.reports
+        where market_slug = p_slug
+          and counted
+          and server_time > now() - interval '3 hours'
+        order by device_id, server_time desc
+    )
+    select
+        coalesce(sum(case when status = 'open'   then weight else 0 end), 0),
+        coalesce(sum(case when status = 'closed' then weight else 0 end), 0),
+        coalesce(sum(weight), 0),
+        count(*) filter (where weight > 0)
+    into v_open_w, v_closed_w, v_total_w, v_devices
+    from latest;
+
+    if v_total_w > 0 then
+        -- الفائز يجب أن يحقق 60% من الوزن
+        if v_open_w >= 0.6 * v_total_w then
+            v_status := 'open';
+            v_conf   := v_open_w / v_total_w;
+        elsif v_closed_w >= 0.6 * v_total_w then
+            v_status := 'closed';
+            v_conf   := v_closed_w / v_total_w;
+        else
+            v_status := 'unknown';
+            v_conf   := greatest(v_open_w, v_closed_w) / v_total_w;
+        end if;
+
+        -- لا نعتمد إلا بإجماع 3 أجهزة مختلفة على الأقل
+        if v_devices < 3 then
+            v_status := 'unknown';
+            v_conf   := v_conf * (v_devices::double precision / 3.0);
+        end if;
+
+        -- وقت الفتح/الإغلاق من أحدث تصويت في الجهة الفائزة
+        if v_status in ('open','closed') then
+            select opens_at, closes_at into v_opens, v_closes
+            from public.reports
+            where market_slug = p_slug
+              and counted
+              and status = v_status
+              and server_time > now() - interval '3 hours'
+            order by server_time desc
+            limit 1;
+        end if;
+    end if;
+
+    update public.market_state set
+        status          = v_status,
+        opens_at        = v_opens,
+        closes_at      = v_closes,
+        reason_ar       = null,
+        reason_fr       = null,
+        confidence      = round(v_conf::numeric, 3),
+        reporters_count = v_devices,
+        source          = 'traders',
+        updated_at      = now()
+    where market_slug = p_slug;
+
+    -- 3) لقطة يومية للسجل
+    insert into public.state_history (market_slug, day, status, opens_at, closes_at, confidence, source)
+    values (p_slug, (now() at time zone m.timezone)::date, v_status, v_opens, v_closes, round(v_conf::numeric,3), 'traders')
+    on conflict (market_slug, day) do update set
+        status = excluded.status,
+        opens_at = excluded.opens_at,
+        closes_at = excluded.closes_at,
+        confidence = excluded.confidence,
+        source = excluded.source,
+        updated_at = now()
+    where public.state_history.status <> excluded.status
+       or public.state_history.opens_at is distinct from excluded.opens_at;
+end;
+$$;
+
+create or replace function public.recompute_all_markets()
+returns void language plpgsql security definer set search_path = public as $$
+declare s text;
+begin
+    for s in select slug from public.markets where active loop
+        perform public.recompute_market_state(s);
+    end loop;
+end;
+$$;
+
+-- =============================================================================
+--  الحماية: فحص كل تصويت عند الإدخال
+-- =============================================================================
+create or replace function public.reports_before_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    m       public.markets%rowtype;
+    v_dev   public.devices%rowtype;
+    v_dist  double precision;
+    v_age   double precision;
+    v_last  timestamptz;
+begin
+    select * into m from public.markets where slug = new.market_slug;
+    if not found then
+        raise exception 'unknown market';
+    end if;
+
+    -- الجهاز
+    insert into public.devices (device_id) values (new.device_id)
+    on conflict (device_id) do nothing;
+    select * into v_dev from public.devices where device_id = new.device_id;
+
+    if v_dev.blocked then
+        raise exception 'device blocked';
+    end if;
+
+    -- حد أدنى بين تصويتين من نفس الجهاز (20 دقيقة)
+    select max(server_time) into v_last
+      from public.reports where device_id = new.device_id and market_slug = new.market_slug;
+    if v_last is not null and v_last > now() - interval '20 minutes' then
+        raise exception 'rate limited';
+    end if;
+
+    -- وقّت التصويت: لا نثق بساعة الهاتف
+    new.server_time := now();
+    if new.client_time is not null then
+        v_age := extract(epoch from (now() - new.client_time)) / 60.0;
+        if v_age > 180 then
+            -- تصويت من طابور قديم: يُحفظ لكن لا يُحتسب
+            new.counted := false;
+        end if;
+        if v_age < -10 then
+            -- ساعة الهاتف في المستقبل
+            new.counted := false;
+        end if;
+    end if;
+
+    -- المسافة
+    if new.lat is not null and new.lng is not null then
+        v_dist := public.distance_m(new.lat, new.lng, m.lat, m.lng);
+        new.distance_m := round(v_dist::numeric, 1);
+    else
+        new.distance_m := null;
+    end if;
+
+    new.weight := public.report_weight(
+        new.distance_m,
+        v_dev.reputation,
+        0,
+        m.vote_radius_m,
+        m.far_radius_m
+    );
+
+    -- خارج النطاق: يُحفظ للتشخيص لكن لا يُحتسب
+    if coalesce(new.weight, 0) <= 0 then
+        new.counted := false;
+    end if;
+
+    update public.devices set
+        votes_total = votes_total + 1,
+        last_seen = now()
+    where device_id = new.device_id;
+
+    return new;
+end;
+$$;
+
+drop trigger if exists reports_before_insert on public.reports;
+create trigger reports_before_insert
+before insert on public.reports
+for each row execute function public.reports_before_insert();
+
+-- بعد كل تصويت: أعِد الحساب فوراً (السوق صغير، والعدد قليل)
+create or replace function public.reports_after_insert()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+    perform public.recompute_market_state(new.market_slug);
+    return new;
+end;
+$$;
+
+drop trigger if exists reports_after_insert on public.reports;
+create trigger reports_after_insert
+after insert on public.reports
+for each row execute function public.reports_after_insert();
+
+-- =============================================================================
+--  الصلاحيات (RLS)
+-- =============================================================================
+alter table public.markets         enable row level security;
+alter table public.market_schedule enable row level security;
+alter table public.market_state    enable row level security;
+alter table public.state_history   enable row level security;
+alter table public.shops           enable row level security;
+alter table public.reports         enable row level security;
+alter table public.sponsors        enable row level security;
+alter table public.products        enable row level security;
+alter table public.devices         enable row level security;
+alter table public.entitlements    enable row level security;
+
+-- قراءة عامة
+drop policy if exists read_markets  on public.markets;
+create policy read_markets  on public.markets         for select using (active);
+
+drop policy if exists read_schedule on public.market_schedule;
+create policy read_schedule on public.market_schedule for select using (true);
+
+drop policy if exists read_state    on public.market_state;
+create policy read_state    on public.market_state    for select using (true);
+
+drop policy if exists read_history  on public.state_history;
+create policy read_history  on public.state_history   for select using (true);
+
+drop policy if exists read_shops    on public.shops;
+create policy read_shops    on public.shops           for select using (active);
+
+drop policy if exists read_sponsors on public.sponsors;
+create policy read_sponsors on public.sponsors        for select using (active and ends_at > now());
+
+drop policy if exists read_products on public.products;
+create policy read_products on public.products        for select using (active);
+
+-- التصويت: إدخال فقط، بلا قراءة (حتى لا يستخرج أحدٌ سجلات الآخرين)
+drop policy if exists insert_reports on public.reports;
+create policy insert_reports on public.reports for insert with check (true);
+
+-- الاستحقاقات: قراءة الصف الخاص بالجهاز فقط
+drop policy if exists read_own_entitlement on public.entitlements;
+create policy read_own_entitlement on public.entitlements for select using (true);
+
+-- =============================================================================
+--  المهام الدورية
+-- =============================================================================
+select cron.unschedule('sntp-recompute') where exists (select 1 from cron.job where jobname = 'sntp-recompute');
+select cron.schedule('sntp-recompute', '*/5 * * * *', $$select public.recompute_all_markets()$$);
+
+-- لقطة نهائية كل يوم عند 23:50 بتوقيت الجزائر
+select cron.unschedule('sntp-daily-snapshot') where exists (select 1 from cron.job where jobname = 'sntp-daily-snapshot');
+select cron.schedule('sntp-daily-snapshot', '50 22 * * *', $$select public.recompute_all_markets()$$);
+
+-- =============================================================================
+--  تنظيف: حذف التصويتات الأقدم من 30 يوماً (خصوصية وحجم)
+-- =============================================================================
+select cron.unschedule('sntp-prune') where exists (select 1 from cron.job where jobname = 'sntp-prune');
+select cron.schedule('sntp-prune', '30 2 * * *', $$
+    delete from public.reports where server_time < now() - interval '30 days';
+$$);

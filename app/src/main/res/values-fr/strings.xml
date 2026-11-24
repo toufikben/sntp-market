@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SNTP</string>
+
+    <string name="status_open">Marché ouvert</string>
+    <string name="status_closed">Marché fermé</string>
+    <string name="status_soon">Ouvre bientôt</string>
+    <string name="status_unknown">Non confirmé</string>
+    <string name="status_no_data">Aucune donnée aujourd\'hui</string>
+
+    <string name="market_name">Marché SNTP</string>
+    <string name="market_area">El Hamiz · Dar El Beïda · Alger</string>
+    <string name="opens_at">Ouverture</string>
+    <string name="closes_at">Fermeture</string>
+    <string name="reason_label">Raison</string>
+    <string name="confidence_label">Fiabilité</string>
+    <string name="confirmers_count">%1$d commerçants ont confirmé</string>
+    <string name="updated_at">Mis à jour %1$s</string>
+    <string name="stale_warning">Dernière info connue — non confirmée maintenant</string>
+    <string name="offline_warning">Hors ligne — dernière info enregistrée</string>
+    <string name="call_trusted">Appeler un commerçant de confiance</string>
+    <string name="refresh">Actualiser</string>
+
+    <string name="vote_open">Je suis au marché — ouvert</string>
+    <string name="vote_closed">Le marché est fermé</string>
+    <string name="vote_sent">Vote envoyé, merci</string>
+    <string name="vote_queued">Votre vote partira dès le retour du réseau</string>
+    <string name="vote_need_location">Votre position est nécessaire pour confirmer la proximité</string>
+    <string name="vote_too_far">Vous êtes trop loin du marché</string>
+    <string name="vote_already">Vous avez déjà voté aujourd\'hui</string>
+    <string name="vote_rate_limited">Trop de tentatives, réessayez plus tard</string>
+
+    <string name="trust_admin">Source : administration du marché</string>
+    <string name="trust_traders">Source : vote des commerçants</string>
+    <string name="trust_seed">Source : horaire habituel</string>
+
+    <string name="tab_today">Aujourd\'hui</string>
+    <string name="tab_week">Semaine</string>
+    <string name="tab_shops">Commerces</string>
+    <string name="tab_history">Historique</string>
+    <string name="tab_settings">Réglages</string>
+
+    <string name="week_title">Horaires habituels de la semaine</string>
+    <string name="week_note">Horaire habituel, pas l\'état du jour</string>
+    <string name="closed_day">Fermé</string>
+    <string name="unknown_day">Inconnu</string>
+
+    <string name="day_sat">Samedi</string>
+    <string name="day_sun">Dimanche</string>
+    <string name="day_mon">Lundi</string>
+    <string name="day_tue">Mardi</string>
+    <string name="day_wed">Mercredi</string>
+    <string name="day_thu">Jeudi</string>
+    <string name="day_fri">Vendredi</string>
+
+    <string name="shops_title">Commerces du marché</string>
+    <string name="shops_search">Rechercher un commerce…</string>
+    <string name="shop_call">Appeler</string>
+    <string name="shop_whatsapp">WhatsApp</string>
+    <string name="shop_verified">Vérifié</string>
+    <string name="shop_claim">Revendiquer ce commerce</string>
+    <string name="shop_phone_locked">Numéro de téléphone</string>
+    <string name="shop_watch_ad">Regarder une pub pour voir le numéro</string>
+    <string name="shops_empty">Aucun commerce enregistré</string>
+
+    <string name="history_title">Historique des états</string>
+    <string name="history_empty">Pas encore d\'historique</string>
+    <string name="history_legend">Ouvert · Fermé · Non confirmé</string>
+
+    <string name="settings_title">Réglages</string>
+    <string name="settings_notify">Notification du matin</string>
+    <string name="settings_notify_desc">Une seule, et uniquement si l\'état a changé</string>
+    <string name="settings_notify_time">Heure de la notification</string>
+    <string name="settings_language">Langue</string>
+    <string name="settings_battery">Empêcher la mise en veille</string>
+    <string name="settings_battery_desc">Certains téléphones coupent les notifications</string>
+    <string name="settings_recovery">Code de récupération</string>
+    <string name="settings_recovery_desc">Conservez-le pour retrouver votre poids sur un autre téléphone</string>
+    <string name="settings_reputation">Votre fiabilité</string>
+    <string name="settings_about">À propos</string>
+    <string name="settings_disclaimer">Informations non officielles, collectées par les commerçants. Vérifiez avant de vous déplacer.</string>
+    <string name="settings_privacy">Confidentialité</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_plan_free">Offre : gratuite</string>
+    <string name="settings_plan_pro">Offre : Pro</string>
+    <string name="settings_plan_boutique">Offre : Boutique</string>
+    <string name="settings_upgrade">Améliorer</string>
+
+    <string name="ok">OK</string>
+    <string name="cancel">Annuler</string>
+    <string name="retry">Réessayer</string>
+    <string name="close">Fermer</string>
+    <string name="loading">Chargement…</string>
+    <string name="today">Aujourd\'hui</string>
+    <string name="yesterday">Hier</string>
+</resources>

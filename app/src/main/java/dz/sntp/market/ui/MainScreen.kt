@@ -1,0 +1,265 @@
+package dz.sntp.market.ui
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dz.sntp.market.R
+import dz.sntp.market.data.model.VoteMessage
+import dz.sntp.market.notify.Notifier
+import dz.sntp.market.notify.Scheduler
+import dz.sntp.market.ui.theme.SntpColors
+import kotlinx.coroutines.delay
+
+@Composable
+fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
+    val ui by vm.ui.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Channel + daily job must exist before the first morning.
+    LaunchedEffect(Unit) {
+        Notifier.ensureChannel(context)
+        if (ui.notifyEnabled) Scheduler.scheduleMorning(context, ui.notifyHour, 0)
+    }
+
+    if (ui.loading) {
+        LoadingScreen()
+        return
+    }
+
+    Box(Modifier.fillMaxSize().background(SntpColors.Sand)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+        ) {
+            Box(Modifier.weight(1f)) {
+                when (ui.tab) {
+                    0 -> TodayTab(ui, vm)
+                    1 -> ScrollTab { WeekSection(ui.week) }
+                    2 -> ScrollTab {
+                        ShopsSection(
+                            shops = ui.shops,
+                            isPro = ui.isPro,
+                            onUnlock = { /* rewarded slot — wired in M5 */ },
+                        )
+                    }
+                    3 -> ScrollTab { HistorySection(ui.history) }
+                    else -> ScrollTab {
+                        SettingsSection(
+                            notifyEnabled = ui.notifyEnabled,
+                            notifyHour = ui.notifyHour,
+                            recoveryCode = ui.recoveryCode,
+                            reputation = ui.reputation,
+                            versionName = ui.versionName,
+                            isPro = ui.isPro,
+                            onNotifyToggle = vm::setNotifications,
+                            onOpenBattery = { openBatterySettings(context) },
+                            onUpgrade = { },
+                        )
+                    }
+                }
+            }
+            BottomBar(selected = ui.tab, onSelect = vm::selectTab)
+        }
+
+        ui.toast?.let { msg ->
+            ToastBanner(
+                message = msg,
+                onDismiss = vm::clearToast,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 96.dp, start = 20.dp, end = 20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun TodayTab(ui: UiState, vm: MainViewModel) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+    ) {
+        Spacer(Modifier.height(20.dp))
+        MarketHeader()
+        Spacer(Modifier.height(18.dp))
+        StatusCard(ui)
+        Spacer(Modifier.height(16.dp))
+        DetailRows(ui)
+        Spacer(Modifier.height(6.dp))
+        androidx.compose.material3.HorizontalDivider(color = SntpColors.Divider)
+        Spacer(Modifier.height(18.dp))
+        VoteSection(
+            voting = ui.voting,
+            pending = ui.pendingVotes,
+            onVote = { status -> vm.vote(status, ui.state.opensAtLocal, ui.state.closesAtLocal, null) },
+        )
+        Spacer(Modifier.height(20.dp))
+        TextButton(
+            onClick = { vm.refresh() },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.refresh), color = SntpColors.DeepGreen, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.settings_disclaimer),
+            style = MaterialTheme.typography.labelSmall,
+            color = SntpColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(28.dp))
+    }
+}
+
+@Composable
+private fun ScrollTab(content: @Composable () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+    ) {
+        Spacer(Modifier.height(20.dp))
+        content()
+        Spacer(Modifier.height(28.dp))
+    }
+}
+
+@Composable
+private fun LoadingScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize().background(SntpColors.Sand),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            androidx.compose.material3.CircularProgressIndicator(color = SntpColors.DeepGreen)
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.loading),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SntpColors.TextSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BottomBar(selected: Int, onSelect: (Int) -> Unit) {
+    val labels = listOf(
+        R.string.tab_today,
+        R.string.tab_week,
+        R.string.tab_shops,
+        R.string.tab_history,
+        R.string.tab_settings,
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SntpColors.DeepGreen)
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        labels.forEachIndexed { index, labelRes ->
+            val active = index == selected
+            TextButton(onClick = { onSelect(index) }, modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(labelRes),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (active) SntpColors.Amber else SntpColors.TextOnDark.copy(alpha = 0.65f),
+                    fontWeight = if (active) FontWeight.Black else FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToastBanner(message: VoteMessage, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    val textRes = when (message) {
+        VoteMessage.SENT -> R.string.vote_sent
+        VoteMessage.QUEUED -> R.string.vote_queued
+        VoteMessage.NEED_LOCATION -> R.string.vote_need_location
+        VoteMessage.TOO_FAR -> R.string.vote_too_far
+        VoteMessage.ALREADY_VOTED -> R.string.vote_already
+        VoteMessage.RATE_LIMITED -> R.string.vote_rate_limited
+        VoteMessage.FAILED -> R.string.retry
+    }
+    LaunchedEffect(message) {
+        delay(4000)
+        onDismiss()
+    }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(SntpColors.DeepGreenDark)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Text(
+            text = stringResource(textRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = SntpColors.TextOnDark,
+        )
+    }
+}
+
+private fun openBatterySettings(context: android.content.Context) {
+    val intents = buildList {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            add(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:${context.packageName}")
+            })
+        }
+        add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:${context.packageName}")
+        })
+    }
+    for (i in intents) {
+        if (runCatching { context.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess) return
+    }
+    runCatching {
+        context.startActivity(
+            Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+}
