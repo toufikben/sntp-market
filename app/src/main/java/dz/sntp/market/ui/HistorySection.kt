@@ -1,4 +1,4 @@
-package dz.sntp.market.ui
+﻿package dz.sntp.market.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -53,7 +53,7 @@ fun HistorySection(history: Map<String, String>) {
     Spacer(Modifier.height(16.dp))
 
     Text(
-        text = "${month.monthValue} / ${month.year}",
+        text = MarketTime.monthLabel(month, java.util.Locale.getDefault()),
         style = MaterialTheme.typography.titleLarge,
         color = SntpColors.DeepGreen,
         fontWeight = FontWeight.Black,
@@ -131,3 +131,4 @@ private fun DayCell(date: LocalDate, status: String?, isToday: Boolean) {
         )
     }
 }
+

@@ -71,4 +71,16 @@ object MarketTime {
     fun dayLabelIso(iso: Int): String = when (iso) {
         1 -> "Mon"; 2 -> "Tue"; 3 -> "Wed"; 4 -> "Thu"; 5 -> "Fri"; 6 -> "Sat"; else -> "Sun"
     }
+
+    /**
+     * Day + month + year in the user's locale. Hand-built strings such as
+     * "$day $dayOfMonth $year" come out mangled in RTL, because the bidi
+     * algorithm reorders the run: the month simply disappears.
+     */
+    fun dateLabel(d: LocalDate, locale: Locale): String =
+        d.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", locale))
+
+    /** "نوفمبر 2026" / "novembre 2026" — spelled out, because "11 / 2026" reads badly in RTL. */
+    fun monthLabel(ym: java.time.YearMonth, locale: Locale): String =
+        ym.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
 }

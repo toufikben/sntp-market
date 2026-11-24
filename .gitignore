@@ -15,3 +15,6 @@ secrets.properties
 /.kotlin
 /app/build/
 *.log
+
+/dist/
+/evidence/

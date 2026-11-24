@@ -202,14 +202,7 @@ private fun sourceText(s: MarketState): String = when (s.source) {
 @Composable
 private fun todayLabel(): String {
     val d = MarketTime.today()
-    val dayName = when (d.dayOfWeek.value) {
-        1 -> stringResource(R.string.day_mon)
-        2 -> stringResource(R.string.day_tue)
-        3 -> stringResource(R.string.day_wed)
-        4 -> stringResource(R.string.day_thu)
-        5 -> stringResource(R.string.day_fri)
-        6 -> stringResource(R.string.day_sat)
-        else -> stringResource(R.string.day_sun)
-    }
-    return "$dayName ${d.dayOfMonth} ${d.year}"
+    val locale = java.util.Locale.getDefault()
+    return MarketTime.dateLabel(d, locale)
 }
+
