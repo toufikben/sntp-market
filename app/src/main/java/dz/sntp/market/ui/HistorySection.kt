@@ -53,7 +53,7 @@ fun HistorySection(history: Map<String, String>) {
     Spacer(Modifier.height(16.dp))
 
     Text(
-        text = MarketTime.monthLabel(month, java.util.Locale.getDefault()),
+        text = MarketTime.monthLabel(month, currentLocale()),
         style = MaterialTheme.typography.titleLarge,
         color = SntpColors.DeepGreen,
         fontWeight = FontWeight.Black,

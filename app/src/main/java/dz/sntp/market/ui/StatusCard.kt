@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -202,7 +203,16 @@ private fun sourceText(s: MarketState): String = when (s.source) {
 @Composable
 private fun todayLabel(): String {
     val d = MarketTime.today()
-    val locale = java.util.Locale.getDefault()
-    return MarketTime.dateLabel(d, locale)
+    return MarketTime.dateLabel(d, currentLocale())
 }
+
+/**
+ * The app locale, not the device locale. The phone may be set to English while
+ * the app itself is showing Arabic, and an English date inside an Arabic screen
+ * is exactly the kind of mismatch that makes an app look careless.
+ */
+@Composable
+internal fun currentLocale(): java.util.Locale =
+    androidx.core.os.ConfigurationCompat.getLocales(LocalConfiguration.current)[0]
+        ?: java.util.Locale.getDefault()
 
