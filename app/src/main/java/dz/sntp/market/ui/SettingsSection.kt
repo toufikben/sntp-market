@@ -1,6 +1,7 @@
 package dz.sntp.market.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,11 +33,13 @@ import dz.sntp.market.ui.theme.SntpColors
 fun SettingsSection(
     notifyEnabled: Boolean,
     notifyHour: Int,
+    themeMode: Int,
     recoveryCode: String,
     reputation: Int,
     versionName: String,
     isPro: Boolean,
     onNotifyToggle: (Boolean) -> Unit,
+    onThemeMode: (Int) -> Unit,
     onOpenBattery: () -> Unit,
     onUpgrade: () -> Unit,
 ) {
@@ -63,6 +66,24 @@ fun SettingsSection(
                 uncheckedTrackColor = SntpColors.Divider,
             ),
         )
+    }
+
+    HorizontalDivider(color = SntpColors.Divider, modifier = Modifier.padding(vertical = 4.dp))
+
+    Column(Modifier.padding(vertical = 12.dp)) {
+        Text(
+            text = stringResource(R.string.settings_theme),
+            style = MaterialTheme.typography.bodyLarge,
+            color = SntpColors.TextPrimary,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = stringResource(R.string.settings_theme_desc),
+            style = MaterialTheme.typography.labelSmall,
+            color = SntpColors.TextSecondary,
+        )
+        Spacer(Modifier.height(10.dp))
+        ThemeSelector(mode = themeMode, onSelect = onThemeMode)
     }
 
     HorizontalDivider(color = SntpColors.Divider, modifier = Modifier.padding(vertical = 4.dp))
@@ -162,6 +183,39 @@ fun SettingsSection(
  * "0.1.0-debug" renders as "debug-0.1.0" and "100 / 180" as "180 / 100".
  */
 private fun isolate(value: String): String = "\u2066$value\u2069"
+
+@Composable
+private fun ThemeSelector(mode: Int, onSelect: (Int) -> Unit) {
+    val options = listOf(
+        0 to R.string.theme_system,
+        1 to R.string.theme_light,
+        2 to R.string.theme_dark,
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { (value, labelRes) ->
+            val active = mode == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (active) SntpColors.DeepGreen else SntpColors.SandDim)
+                    .clickable { onSelect(value) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(labelRes),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (active) SntpColors.TextOnDark else SntpColors.TextPrimary,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun SettingRow(

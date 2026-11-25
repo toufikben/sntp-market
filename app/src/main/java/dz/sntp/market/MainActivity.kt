@@ -10,7 +10,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import dz.sntp.market.ui.MainScreen
-import dz.sntp.market.ui.theme.SntpTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -30,9 +29,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            SntpTheme {
-                MainScreen()
-            }
+            MainScreen()
         }
     }
 }

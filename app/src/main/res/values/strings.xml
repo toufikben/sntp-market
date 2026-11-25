@@ -98,6 +98,11 @@
     <string name="settings_recovery_desc">احفظه لاستعادة وزنك عند تغيير الهاتف</string>
     <string name="settings_reputation">موثوقيتك</string>
     <string name="settings_reputation_value">موثوقيتك: %1$s</string>
+    <string name="settings_theme">المظهر</string>
+    <string name="settings_theme_desc">الوضع الداكن مريح للعين قبل الفجر</string>
+    <string name="theme_system">تلقائي</string>
+    <string name="theme_light">فاتح</string>
+    <string name="theme_dark">داكن</string>
     <string name="settings_about">حول التطبيق</string>
     <string name="settings_disclaimer">معلومات غير رسمية يجمعها التجار. تحقّق قبل التنقل.</string>
     <string name="settings_privacy">سياسة الخصوصية</string>

@@ -34,6 +34,7 @@ data class UiState(
     val recoveryCode: String = "",
     val notifyEnabled: Boolean = true,
     val notifyHour: Int = 5,
+    val themeMode: Int = 0,
     val isPro: Boolean = false,
     val tab: Int = 0,
     val versionName: String = BuildConfig.VERSION_NAME,
@@ -56,6 +57,7 @@ class MainViewModel : ViewModel() {
                     recoveryCode = prefs.recoveryCode(),
                     notifyEnabled = prefs.notifyEnabled.first(),
                     notifyHour = prefs.notifyHour.first(),
+                    themeMode = prefs.themeMode(),
                 )
             }
         }
@@ -120,6 +122,13 @@ class MainViewModel : ViewModel() {
     }
 
     fun clearToast() = _ui.update { it.copy(toast = null) }
+
+    fun setThemeMode(mode: Int) {
+        viewModelScope.launch {
+            prefs.setThemeMode(mode)
+            _ui.update { it.copy(themeMode = mode) }
+        }
+    }
 }
 
 @Composable

@@ -114,7 +114,7 @@ private fun VoteButton(
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelLarge,
-                color = SntpColors.TextOnDark,
+                color = SntpColors.OnAccent,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
             )

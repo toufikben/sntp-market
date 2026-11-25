@@ -1,45 +1,102 @@
 package dz.sntp.market.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 /**
- * Palette chosen for a market at 5 a.m. under street lights: high contrast,
- * no pure white, and a single accent per state so a glance is enough.
+ * Named colours as composable getters so the ~80 existing call sites keep
+ * working while the value follows the active palette. Anything that reads these
+ * outside a composable is a bug the compiler catches.
  */
 object SntpColors {
-    val DeepGreen = Color(0xFF0F3D3E)
-    val DeepGreenDark = Color(0xFF082B2C)
-    val Sand = Color(0xFFF6F1E7)
-    val SandDim = Color(0xFFE8E0D2)
-    val Amber = Color(0xFFF2B441)
-    val AmberDark = Color(0xFFC98C1F)
+    val Sand: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.bg
 
-    val Open = Color(0xFF1E8E4E)
-    val OpenBg = Color(0xFFE3F4E9)
-    val Closed = Color(0xFFB23A2E)
-    val ClosedBg = Color(0xFFFBE7E4)
-    val Unknown = Color(0xFF8A6D1F)
-    val UnknownBg = Color(0xFFFBF2DC)
+    val SandDim: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.surfaceDim
 
-    val TextPrimary = Color(0xFF1A1A1A)
-    val TextSecondary = Color(0xFF5A5A5A)
-    val TextOnDark = Color(0xFFF6F1E7)
-    val Divider = Color(0xFFDCD3C4)
+    val Divider: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.divider
 
-    // ------------------------------------------------------------- night
-    // Traders check this before dawn and after the gate closes. A white screen
-    // at 5 a.m. in a dark car is physically painful, so dark is a real mode,
-    // not a theme checkbox.
-    val NightBg = Color(0xFF12181A)
-    val NightSurface = Color(0xFF1B2426)
-    val NightSurfaceDim = Color(0xFF263134)
-    val NightText = Color(0xFFEDE8DC)
-    val NightTextSecondary = Color(0xFFA9B2B3)
-    val NightDivider = Color(0xFF33403F)
-    val NightOpen = Color(0xFF4FD07E)
-    val NightOpenBg = Color(0xFF12291D)
-    val NightClosed = Color(0xFFF07A6B)
-    val NightClosedBg = Color(0xFF2C1815)
-    val NightUnknown = Color(0xFFE7BE62)
-    val NightUnknownBg = Color(0xFF2A2313)
+    val TextPrimary: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.textPrimary
+
+    val TextSecondary: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.textSecondary
+
+    val TextOnDark: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.textOnDark
+
+    val OnAccent: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.onAccent
+
+    val DeepGreen: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.brand
+
+    val BrandBar: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.brandBar
+
+    val DeepGreenDark: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.brandDark
+
+    val Amber: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.amber
+
+    val AmberDark: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.amberDark
+
+    val Open: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.open
+
+    val OpenBg: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.openBg
+
+    val Closed: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.closed
+
+    val ClosedBg: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.closedBg
+
+    val Unknown: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.unknown
+
+    val UnknownBg: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSntpPalette.current.unknownBg
 }

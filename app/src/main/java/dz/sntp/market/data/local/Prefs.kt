@@ -37,6 +37,16 @@ class Prefs(private val context: Context) {
         val NOTIFY_MINUTE = intPreferencesKey("notify_minute")
         val LAST_NOTIFIED_DAY = stringPreferencesKey("last_notified_day")
         val LAST_NOTIFIED_STATUS = stringPreferencesKey("last_notified_status")
+        val THEME_MODE = intPreferencesKey("theme_mode")
+    }
+
+    // ---------------------------------------------------------------- theme
+
+    /** 0 = follow the phone, 1 = always light, 2 = always dark. */
+    suspend fun themeMode(): Int = context.dataStore.data.map { it[K.THEME_MODE] ?: 0 }.first()
+
+    suspend fun setThemeMode(mode: Int) {
+        context.dataStore.edit { it[K.THEME_MODE] = mode }
     }
 
     // ------------------------------------------------------------- identity

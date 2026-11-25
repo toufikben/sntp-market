@@ -1,35 +1,63 @@
 package dz.sntp.market.ui.theme
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 
-private val scheme = lightColorScheme(
-    primary = SntpColors.DeepGreen,
-    onPrimary = SntpColors.TextOnDark,
-    primaryContainer = SntpColors.DeepGreen,
-    onPrimaryContainer = SntpColors.TextOnDark,
-    secondary = SntpColors.Amber,
-    onSecondary = SntpColors.TextPrimary,
-    background = SntpColors.Sand,
-    onBackground = SntpColors.TextPrimary,
-    surface = SntpColors.Sand,
-    onSurface = SntpColors.TextPrimary,
-    surfaceVariant = SntpColors.SandDim,
-    onSurfaceVariant = SntpColors.TextSecondary,
-    error = SntpColors.Closed,
-    onError = SntpColors.TextOnDark,
-    outline = SntpColors.Divider,
-)
+private fun schemeFor(p: SntpPalette, dark: Boolean) = if (dark) {
+    darkColorScheme(
+        primary = p.brand,
+        onPrimary = p.onAccent,
+        primaryContainer = p.brandBar,
+        onPrimaryContainer = p.textOnDark,
+        secondary = p.amber,
+        onSecondary = p.onAccent,
+        background = p.bg,
+        onBackground = p.textPrimary,
+        surface = p.surface,
+        onSurface = p.textPrimary,
+        surfaceVariant = p.surfaceDim,
+        onSurfaceVariant = p.textSecondary,
+        error = p.closed,
+        onError = p.onAccent,
+        outline = p.divider,
+    )
+} else {
+    lightColorScheme(
+        primary = p.brand,
+        onPrimary = p.textOnDark,
+        primaryContainer = p.brand,
+        onPrimaryContainer = p.textOnDark,
+        secondary = p.amber,
+        onSecondary = p.textPrimary,
+        background = p.bg,
+        onBackground = p.textPrimary,
+        surface = p.surface,
+        onSurface = p.textPrimary,
+        surfaceVariant = p.surfaceDim,
+        onSurfaceVariant = p.textSecondary,
+        error = p.closed,
+        onError = p.textOnDark,
+        outline = p.divider,
+    )
+}
 
 /**
  * Base type is intentionally large: the primary users are shopkeepers reading
@@ -80,16 +108,47 @@ private val typography = Typography(
     ),
 )
 
+/**
+ * @param darkTheme system-following by default; the settings screen can force
+ * either mode, which is why this is a parameter and not `isSystemInDarkTheme()`
+ * read deep in the tree.
+ */
 @Composable
-fun SntpTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = scheme, typography = typography) {
-        CompositionLocalProvider(
-            LocalTextSelectionColors provides TextSelectionColors(
-                handleColor = SntpColors.Amber,
-                backgroundColor = SntpColors.Amber.copy(alpha = 0.3f),
-            ),
-            LocalContentColor provides SntpColors.TextPrimary,
-            content = content,
-        )
+fun SntpTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
+) {
+    val palette = if (darkTheme) DarkPalette else LightPalette
+    val scheme = schemeFor(palette, darkTheme)
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = view.context.findActivity()?.window ?: return@SideEffect
+            // Icon colour must follow *our* theme, not the system one: a user who
+            // forces dark on a light phone would otherwise get dark icons on a
+            // dark status bar.
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
     }
+
+    CompositionLocalProvider(
+        LocalSntpPalette provides palette,
+        LocalTextSelectionColors provides TextSelectionColors(
+            handleColor = palette.amber,
+            backgroundColor = palette.amber.copy(alpha = 0.3f),
+        ),
+        LocalContentColor provides palette.textPrimary,
+    ) {
+        MaterialTheme(colorScheme = scheme, typography = typography, content = content)
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

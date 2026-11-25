@@ -9,6 +9,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -28,13 +28,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.core.content.ContextCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,12 +41,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dz.sntp.market.R
 import dz.sntp.market.data.model.VoteMessage
 import dz.sntp.market.notify.Notifier
 import dz.sntp.market.notify.Scheduler
 import dz.sntp.market.ui.theme.SntpColors
+import dz.sntp.market.ui.theme.SntpTheme
 import kotlinx.coroutines.delay
 
 @Composable
@@ -93,16 +93,30 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         }
     }
 
+    val dark = when (ui.themeMode) {
+        1 -> false
+        2 -> true
+        else -> isSystemInDarkTheme()
+    }
+
     // Channel + daily job must exist before the first morning.
     LaunchedEffect(Unit) {
         Notifier.ensureChannel(context)
         if (ui.notifyEnabled) Scheduler.scheduleMorning(context, ui.notifyHour, 0)
     }
 
-    if (ui.loading) {
-        LoadingScreen()
-        return
+    SntpTheme(darkTheme = dark) {
+        if (ui.loading) {
+            LoadingScreen()
+        } else {
+            MainContent(ui = ui, vm = vm, onVote = ::voteWithPermission)
+        }
     }
+}
+
+@Composable
+private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit) {
+    val context = LocalContext.current
 
     Box(Modifier.fillMaxSize().background(SntpColors.Sand)) {
         Column(
@@ -113,7 +127,7 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         ) {
             Box(Modifier.weight(1f)) {
                 when (ui.tab) {
-                    0 -> TodayTab(ui, vm, ::voteWithPermission)
+                    0 -> TodayTab(ui, vm, onVote)
                     1 -> ScrollTab { WeekSection(ui.week) }
                     2 -> ScrollTab {
                         ShopsSection(
@@ -127,11 +141,13 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
                         SettingsSection(
                             notifyEnabled = ui.notifyEnabled,
                             notifyHour = ui.notifyHour,
+                            themeMode = ui.themeMode,
                             recoveryCode = ui.recoveryCode,
                             reputation = ui.reputation,
                             versionName = ui.versionName,
                             isPro = ui.isPro,
                             onNotifyToggle = vm::setNotifications,
+                            onThemeMode = vm::setThemeMode,
                             onOpenBattery = { openBatterySettings(context) },
                             onUpgrade = { },
                         )
@@ -238,7 +254,7 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SntpColors.DeepGreen)
+            .background(SntpColors.BrandBar)
             .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {

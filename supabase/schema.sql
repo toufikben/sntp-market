@@ -578,9 +578,74 @@ create policy read_products on public.products        for select using (active);
 drop policy if exists insert_reports on public.reports;
 create policy insert_reports on public.reports for insert with check (true);
 
--- الاستحقاقات: قراءة الصف الخاص بالجهاز فقط
+-- الاستحقاقات: لا تُقرأ كجدول. الدالة أدناه تُرجع صف الجهاز نفسه فقط،
+-- حتى لا يستطيع أحدٌ سرد اشتراكات كل الأجهزة بالـ anon key.
 drop policy if exists read_own_entitlement on public.entitlements;
-create policy read_own_entitlement on public.entitlements for select using (true);
+
+create or replace function public.my_entitlement(p_device_id text)
+returns table (tier text, source text, expires_at timestamptz)
+language sql
+security definer
+set search_path = public
+as $$
+    select e.tier, e.source, e.expires_at
+    from public.entitlements e
+    where e.device_id = p_device_id
+      and (e.expires_at is null or e.expires_at > now())
+    limit 1;
+$$;
+
+-- ---------------------------------------------------------------- promo
+-- أول 500 مستخدم: Pro مدى الحياة. عدّاد داخل قفل استشاري حتى لا يمنح
+-- طلبان متزامنان المقعد 500 و501 معاً.
+create or replace function public.claim_promo(p_device_id text)
+returns table (tier text, source text, expires_at timestamptz)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    v_granted int;
+begin
+    perform pg_advisory_xact_lock(500500);
+
+    select count(*) into v_granted from public.promo_grants;
+
+    if v_granted < 500 then
+        insert into public.promo_grants (device_id, tier, reason)
+        values (p_device_id, 'pro', 'first-500')
+        on conflict (device_id) do nothing;
+
+        insert into public.entitlements (device_id, tier, source, expires_at)
+        values (p_device_id, 'pro', 'promo', null)
+        on conflict (device_id) do update set
+            tier = excluded.tier,
+            source = excluded.source,
+            expires_at = excluded.expires_at,
+            updated_at = now();
+    end if;
+
+    return query
+        select e.tier, e.source, e.expires_at
+        from public.entitlements e
+        where e.device_id = p_device_id
+          and (e.expires_at is null or e.expires_at > now())
+        limit 1;
+end;
+$$;
+
+revoke all on function public.my_entitlement(text) from public;
+revoke all on function public.claim_promo(text) from public;
+grant execute on function public.my_entitlement(text) to anon, authenticated;
+grant execute on function public.claim_promo(text) to anon, authenticated;
+
+-- جداول لا يلمسها العميل إطلاقاً. بدون سياسة = منع كامل، لكن يجب تفعيل RLS
+-- صراحةً وإلا صارت مفتوحة للقراءة والكتابة بمفتاح anon.
+alter table public.purchases       enable row level security;
+alter table public.promo_grants    enable row level security;
+alter table public.billing_events  enable row level security;
+alter table public.admin_actions   enable row level security;
+alter table public.market_override enable row level security;
 
 -- =============================================================================
 --  المهام الدورية
