@@ -139,6 +139,11 @@ create table if not exists public.reports (
 create index if not exists reports_market_time_idx on public.reports (market_slug, server_time desc);
 create index if not exists reports_device_idx on public.reports (device_id, server_time desc);
 
+-- Re-running this file must not fail on a project that already ran an older
+-- version: `create table if not exists` silently skips the new column, and every
+-- function below would then break at runtime instead of here.
+alter table public.reports add column if not exists scored_at timestamptz;
+
 -- -----------------------------------------------------------------------------
 -- 6. حالة السوق (الإجماع) + تجاوز الإدارة
 -- -----------------------------------------------------------------------------
