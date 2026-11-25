@@ -187,6 +187,8 @@ private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit
         UpgradeSheet(
             visible = ui.showUpgrade,
             billingReady = ui.billingReady,
+            buyError = ui.buyError,
+            prices = ui.prices,
             tier = ui.tier,
             onDismiss = { vm.setShowUpgrade(false) },
             onBuy = { sku -> vm.buy(context as? android.app.Activity, sku) },

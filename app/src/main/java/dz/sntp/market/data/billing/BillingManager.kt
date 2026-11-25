@@ -32,9 +32,25 @@ class BillingManager(private val context: Context) {
     private var client: BillingClient? = null
 
     private val _ready = MutableStateFlow(false)
+
+    /**
+     * True only when Play is connected *and* at least one product came back.
+     * Connected-but-no-products is the normal state before the console has
+     * prices, and enabling the buy button then means every tap fails with
+     * `product_unavailable`. The sheet says "not activated yet" instead.
+     */
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
 
     private val _products = MutableStateFlow<Map<String, ProductDetails>>(emptyMap())
+
+    /**
+     * Real, localized prices from Play, keyed by SKU. Play requires the price the
+     * user is charged to be the price shown, and it varies by country and by
+     * whatever tax rules apply, so a hardcoded "1000 دج" is both wrong abroad and
+     * a policy problem.
+     */
+    private val _prices = MutableStateFlow<Map<String, String>>(emptyMap())
+    val prices: StateFlow<Map<String, String>> = _prices.asStateFlow()
 
     /** Called on the Play callback thread (main) with the purchased SKU. */
     var onPurchased: ((String) -> Unit)? = null
@@ -57,7 +73,6 @@ class BillingManager(private val context: Context) {
         c.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    _ready.value = true
                     queryProducts()
                     restore()
                 }
@@ -107,7 +122,6 @@ class BillingManager(private val context: Context) {
         client = null
         _ready.value = false
     }
-
     private fun queryProducts() {
         val c = client ?: return
         val products = SKUS.map { sku ->
@@ -121,7 +135,18 @@ class BillingManager(private val context: Context) {
             .build()
         c.queryProductDetailsAsync(params) { result, details ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                _products.value = details.associateBy { it.productId }
+                val bySku = details.associateBy { it.productId }
+                _products.value = bySku
+                _prices.value = bySku.mapValues { (_, d) ->
+                    d.subscriptionOfferDetails?.firstOrNull()
+                        ?.pricingPhases?.pricingPhaseList?.firstOrNull()
+                        ?.formattedPrice
+                        ?: ""
+                }.filterValues { it.isNotBlank() }
+                // Only now is a purchase actually possible.
+                _ready.value = bySku.isNotEmpty()
+            } else {
+                _ready.value = false
             }
         }
     }

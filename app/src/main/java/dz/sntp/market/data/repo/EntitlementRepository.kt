@@ -31,26 +31,46 @@ class EntitlementRepository(
     }
 
     /**
-     * Asks the server, then tries the promo once. Returns null when there is no
-     * server configured or nothing changed, so callers keep the cached value.
-     * A free answer never downgrades a locally stored Play purchase.
+     * Asks the server, then tries the promo once. Returns null when nothing
+     * changed, so callers keep the cached value. A free answer never downgrades
+     * a locally stored Play purchase.
      */
     suspend fun syncFromServer(): Entitlement? = withContext(Dispatchers.IO) {
         if (!market.isConfigured) return@withContext null
 
         val device = prefs.deviceId
+        val local = prefs.entitlement().effective()
 
-        ask("my_entitlement", device)?.let { save(it); return@withContext it }
-
-        if (!prefs.promoAttempted()) {
-            val claimed = ask("claim_promo", device)
-            prefs.setPromoAttempted()
-            if (claimed != null) {
-                save(claimed)
-                return@withContext claimed
+        when (val existing = ask("my_entitlement", device)) {
+            is Answer.Found -> {
+                save(existing.e)
+                return@withContext existing.e
             }
+            // No server session or a transport failure. Trying the promo now would
+            // burn the device's single attempt on a connection problem, so wait.
+            Answer.Unreachable -> return@withContext null
+            Answer.Empty -> Unit
         }
-        null
+
+        // A paying subscriber must not take a free lifetime seat: the server would
+        // hand back the paid row unchanged, but the seat counter still moves.
+        if (local.isPro) return@withContext null
+        if (prefs.promoAttempted()) return@withContext null
+
+        when (val claimed = ask("claim_promo", device)) {
+            is Answer.Found -> {
+                // Only now is the attempt really spent: the server answered.
+                prefs.setPromoAttempted()
+                save(claimed.e)
+                claimed.e
+            }
+            Answer.Empty -> {
+                // Answered, and there is no row: the 500 seats are gone.
+                prefs.setPromoAttempted()
+                null
+            }
+            Answer.Unreachable -> null
+        }
     }
 
     /** A Play purchase is acknowledged by the client and stored immediately. */
@@ -60,18 +80,29 @@ class EntitlementRepository(
         e
     }
 
-    private suspend fun ask(fn: String, device: String): Entitlement? {
+    private sealed interface Answer {
+        data class Found(val e: Entitlement) : Answer
+        /** The server replied with an empty set. */
+        data object Empty : Answer
+        /** Network, timeout, or auth problem — nothing was decided. */
+        data object Unreachable : Answer
+    }
+
+    private suspend fun ask(fn: String, device: String): Answer {
         val body = """{"p_device_id":"${device.filter { it.isLetterOrDigit() }}"}"""
-        val raw = market.rpc(fn, body).getOrNull() ?: return null
+        val result = market.rpc(fn, body)
+
+        val raw = result.getOrElse { return Answer.Unreachable }
         return runCatching {
             val row = json.parseToJsonElement(raw).jsonArray.firstOrNull()?.jsonObject
-                ?: return@runCatching null
-            Entitlement.fromServer(
+                ?: return@runCatching Answer.Empty
+            val e = Entitlement.fromServer(
                 tier = row["tier"]?.jsonPrimitive?.text(),
                 source = row["source"]?.jsonPrimitive?.text(),
                 expiresAtMs = parseTime(row["expires_at"]?.jsonPrimitive?.text()),
             )
-        }.getOrNull()
+            if (e.tier == Tier.FREE) Answer.Empty else Answer.Found(e)
+        }.getOrDefault(Answer.Empty)
     }
 
     private fun parseTime(iso: String?): Long = IsoTime.toEpochMs(iso)

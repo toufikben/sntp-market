@@ -36,6 +36,8 @@ import dz.sntp.market.ui.theme.SntpColors
 fun UpgradeSheet(
     visible: Boolean,
     billingReady: Boolean,
+    buyError: Boolean,
+    prices: Map<String, String>,
     tier: Tier,
     onDismiss: () -> Unit,
     onBuy: (String) -> Unit,
@@ -69,7 +71,10 @@ fun UpgradeSheet(
 
             PlanRow(
                 title = stringResource(R.string.plan_pro_monthly),
-                price = stringResource(R.string.plan_pro_monthly_price),
+                // Play's own localized price wins; the string is only the offline
+                // fallback so the offer is still readable without a connection.
+                price = prices[BillingManager.SKU_PRO_MONTHLY]
+                    ?: stringResource(R.string.plan_pro_monthly_price),
                 features = stringResource(R.string.plan_pro_features),
                 active = tier == Tier.PRO,
                 enabled = billingReady,
@@ -78,7 +83,8 @@ fun UpgradeSheet(
             HorizontalDivider(color = SntpColors.Divider)
             PlanRow(
                 title = stringResource(R.string.plan_pro_yearly),
-                price = stringResource(R.string.plan_pro_yearly_price),
+                price = prices[BillingManager.SKU_PRO_YEARLY]
+                    ?: stringResource(R.string.plan_pro_yearly_price),
                 features = stringResource(R.string.plan_pro_features),
                 active = tier == Tier.PRO,
                 enabled = billingReady,
@@ -87,7 +93,8 @@ fun UpgradeSheet(
             HorizontalDivider(color = SntpColors.Divider)
             PlanRow(
                 title = stringResource(R.string.plan_boutique_monthly),
-                price = stringResource(R.string.plan_boutique_price),
+                price = prices[BillingManager.SKU_BOUTIQUE_MONTHLY]
+                    ?: stringResource(R.string.plan_boutique_price),
                 features = stringResource(R.string.plan_boutique_features),
                 active = tier == Tier.BOUTIQUE,
                 enabled = billingReady,
@@ -96,10 +103,13 @@ fun UpgradeSheet(
 
             Spacer(Modifier.height(14.dp))
             Text(
-                text = if (billingReady) stringResource(R.string.upgrade_free_note)
-                else stringResource(R.string.upgrade_unavailable),
+                text = when {
+                    buyError -> stringResource(R.string.upgrade_failed)
+                    billingReady -> stringResource(R.string.upgrade_free_note)
+                    else -> stringResource(R.string.upgrade_unavailable)
+                },
                 style = MaterialTheme.typography.labelSmall,
-                color = SntpColors.TextSecondary,
+                color = if (buyError) SntpColors.Closed else SntpColors.TextSecondary,
             )
         }
     }

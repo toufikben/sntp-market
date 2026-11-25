@@ -43,6 +43,8 @@ data class UiState(
     val tier: Tier = Tier.FREE,
     val isPro: Boolean = false,
     val billingReady: Boolean = false,
+    val prices: Map<String, String> = emptyMap(),
+    val buyError: Boolean = false,
     val showUpgrade: Boolean = false,
     val unlockedShops: Set<String> = emptySet(),
     val tab: Int = 0,
@@ -73,6 +75,11 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             billing.ready.collect { ready ->
                 _ui.update { it.copy(billingReady = ready) }
+            }
+        }
+        viewModelScope.launch {
+            billing.prices.collect { prices ->
+                _ui.update { it.copy(prices = prices) }
             }
         }
 
@@ -164,11 +171,14 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun setShowUpgrade(show: Boolean) = _ui.update { it.copy(showUpgrade = show) }
+    fun setShowUpgrade(show: Boolean) = _ui.update { it.copy(showUpgrade = show, buyError = false) }
 
     fun buy(activity: android.app.Activity?, sku: String) {
         if (activity == null) return
-        billing.buy(activity, sku)
+        // A failed launch used to be swallowed: the user tapped "subscribe" and
+        // nothing happened at all. Surface it in the sheet instead.
+        val error = billing.buy(activity, sku)
+        _ui.update { it.copy(buyError = error != null) }
     }
 
     /** One rewarded card unlocks one shop's number for this session. */
