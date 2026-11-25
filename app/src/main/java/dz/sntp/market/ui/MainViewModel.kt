@@ -16,6 +16,7 @@ import dz.sntp.market.data.model.VoteMessage
 import dz.sntp.market.data.model.VoteOutcome
 import dz.sntp.market.data.repo.PendingVotes
 import dz.sntp.market.notify.Scheduler
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -118,26 +119,39 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             if (initial) _ui.update { it.copy(loading = true) }
 
-            val state = repo.loadState()
-            val week = repo.loadWeek()
-            val shops = repo.loadShops()
-            val sponsors = repo.loadSponsors()
-            val history = repo.loadHistory()
+            // Six independent calls were run one after another. Each has an 18-second
+            // call timeout, and inside the market the signal is barely alive, so the
+            // spinner could sit for a minute and a half while the trader stood at the
+            // gate. They do not depend on each other: run them together.
+            val state = async { repo.loadState() }
+            val week = async { repo.loadWeek() }
+            val shops = async { repo.loadShops() }
+            val sponsors = async { repo.loadSponsors() }
+            val history = async { repo.loadHistory() }
             // Ask the server for the score it actually computed; the cached value
             // is only a fallback for the offline case.
-            val rep = votes.syncReputation() ?: prefs.reputation()
+            val rep = async { votes.syncReputation() ?: prefs.reputation() }
+
+            val stateV = runCatching { state.await() }.getOrElse { _ui.value.state }
+            val weekV = runCatching { week.await() }.getOrElse { _ui.value.week }
+            val shopsV = runCatching { shops.await() }.getOrElse { _ui.value.shops }
+            val sponsorsV = runCatching { sponsors.await() }.getOrElse { _ui.value.sponsors }
+            val historyV = runCatching { history.await() }.getOrElse { _ui.value.history }
+            val repV = runCatching { rep.await() }.getOrElse { _ui.value.reputation }
 
             _ui.update {
                 it.copy(
+                    // A thrown call must never leave the app on the spinner forever;
+                    // the fallbacks above keep the last good values on screen.
                     loading = false,
-                    state = state,
-                    week = week,
-                    shops = shops,
-                    sponsors = sponsors,
-                    history = history,
+                    state = stateV,
+                    week = weekV,
+                    shops = shopsV,
+                    sponsors = sponsorsV,
+                    history = historyV,
                     pendingVotes = PendingVotes.count(app),
                     configured = repo.isConfigured,
-                    reputation = rep,
+                    reputation = repV,
                 )
             }
             // Anything queued while offline goes out on the next successful read.
