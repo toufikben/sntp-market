@@ -215,6 +215,9 @@ class MainViewModel : ViewModel() {
 
     fun clearToast() = _ui.update { it.copy(toast = null) }
 
+    /** Lets the screen report a refusal the vote path never got to see. */
+    fun showToast(message: VoteMessage) = _ui.update { it.copy(toast = message) }
+
     /**
      * Pushes only on a real change of a confirmed state, and only once per change.
      * A user who went to sleep with "open" and wakes to "closed" should hear it

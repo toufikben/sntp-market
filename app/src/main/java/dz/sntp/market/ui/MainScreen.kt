@@ -76,6 +76,11 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         pendingVote = null
         if (granted && status != null) {
             vm.vote(status, ui.state.opensAtLocal, ui.state.closesAtLocal, null)
+        } else if (!granted) {
+            // The trader tapped "open", the system asked, they refused, and the tap
+            // vanished in silence. The vote path already has a message for exactly
+            // this case, so say it instead of looking like a dead button.
+            vm.showToast(VoteMessage.NEED_LOCATION)
         }
     }
 
@@ -99,7 +104,6 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
             )
         }
     }
-
     // From Android 13 the notification permission is not granted at install, and
     // nothing ever asked for it: the switch said "on", the worker ran every
     // morning, and the notification was silently dropped. Asking here is the
