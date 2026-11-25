@@ -129,7 +129,11 @@ create table if not exists public.reports (
     server_time timestamptz not null default now(),
     distance_m  double precision,
     weight      double precision,
-    counted     boolean not null default true
+    counted     boolean not null default true,
+    -- Scored once, ever. Without this the same vote is rewarded again each time
+    -- the state flips back (votes age out, the state returns to unknown, a new
+    -- confirmation arrives) and a patient trader farms reputation for free.
+    scored_at   timestamptz
 );
 
 create index if not exists reports_market_time_idx on public.reports (market_slug, server_time desc);
@@ -505,31 +509,40 @@ begin
     -- Scores stay in 40..180: one bad day must not make a trader worthless, and
     -- one good day must not make a stranger authoritative.
     if v_status in ('open','closed') and v_prev_status is distinct from v_status then
-        update public.devices d set
-            votes_agreed = d.votes_agreed + 1,
-            reputation = least(180, d.reputation + 4)
-        where d.device_id in (
-            select r.device_id from public.reports r
+        -- Each report is scored at most once (scored_at), so a state that flips
+        -- back and forth cannot be farmed for reputation. The UPDATE marks them in
+        -- the same statement, which is what makes the guarantee hold.
+        with winners as (
+            update public.reports r set scored_at = now()
             where r.market_slug = p_slug
               and r.counted
               and r.status = v_status
+              and r.scored_at is null
               and r.server_time > now() - interval '3 hours'
-        );
-
+            returning r.device_id
+        )
         update public.devices d set
-            votes_dissented = d.votes_dissented + 1,
-            reputation = greatest(40, d.reputation - 3)
-        where d.device_id in (
-            -- Only a *fresh* contradiction counts. A trader who reported "open" at
-            -- 12:30 was right at the time; when the market closes at 14:00 his vote
-            -- is still inside the 3-hour window but must not be scored as a dissent,
-            -- or the honest early reporter is punished by hindsight alone.
-            select r.device_id from public.reports r
+            votes_agreed = d.votes_agreed + 1,
+            reputation = least(180, d.reputation + 4)
+        where d.device_id in (select device_id from winners);
+
+        with dissenters as (
+            update public.reports r set scored_at = now()
             where r.market_slug = p_slug
               and r.counted
               and r.status <> v_status
+              and r.scored_at is null
+              -- Only a *fresh* contradiction counts. A trader who reported "open" at
+              -- 12:30 was right at the time; when the market closes at 14:00 his vote
+              -- is still inside the 3-hour window but must not be scored as a dissent,
+              -- or the honest early reporter is punished by hindsight alone.
               and r.server_time > now() - interval '45 minutes'
-        );
+            returning r.device_id
+        )
+        update public.devices d set
+            votes_dissented = d.votes_dissented + 1,
+            reputation = greatest(40, d.reputation - 3)
+        where d.device_id in (select device_id from dissenters);
     end if;
 end;
 $$;
