@@ -44,8 +44,16 @@ class MarketRepository(
 
     private val client = SupabaseClient(config.supabaseUrl, config.anonKey)
 
-    /** How long a cached state may be shown without a stale badge. */
-    private val freshWindowMs = 20 * 60 * 1000L
+    /**
+     * How long a state may be shown without a stale badge.
+     *
+     * Matches the first step of the server's freshness decay (full weight for 45
+     * minutes, then 0.7, 0.4, and nothing after three hours). It used to be 20
+     * minutes, which flagged a confirmation as stale while the consensus engine
+     * still counted it at full strength — the app disagreed with its own source of
+     * truth. The badge now appears exactly when the evidence starts to weaken.
+     */
+    private val freshWindowMs = 45 * 60 * 1000L
 
     val isConfigured: Boolean get() = client.isConfigured
 
@@ -75,19 +83,30 @@ class MarketRepository(
         }
 
         val (cachedJson, cachedAt) = prefs.cachedState()
-        val age = System.currentTimeMillis() - cachedAt
-        val freshness = when {
-            cachedJson == null -> if (isOnline()) Freshness.STALE else Freshness.OFFLINE
-            age <= freshWindowMs -> Freshness.CACHED
-            else -> Freshness.STALE
-        }
 
         if (cachedJson != null) {
             val dto = runCatching {
                 json.decodeFromString(MarketStateDto.serializer(), cachedJson)
             }.getOrNull()
-            if (dto != null) return@withContext dto.toDomain(freshness, cachedAt)
+            if (dto != null) {
+                // The age that matters is the age of the server's information, not
+                // the moment we happened to write the cache. Reading the row at
+                // 07:00 that the server last touched at 05:00 and going offline left
+                // the badge measuring from 07:00, so the evidence was always
+                // reported fresher offline than online.
+                val now = System.currentTimeMillis()
+                val evidenceAge = IsoTime.toEpochMs(dto.updatedAt).takeIf { it > 0 }
+                    ?.let { now - it }
+                    ?: (now - cachedAt)
+                val freshness = when {
+                    evidenceAge <= freshWindowMs -> Freshness.CACHED
+                    else -> Freshness.STALE
+                }
+                return@withContext dto.toDomain(freshness, cachedAt)
+            }
         }
+
+        val freshness = if (isOnline()) Freshness.STALE else Freshness.OFFLINE
 
         // Nothing at all: fall back to the seed schedule so the screen is never empty.
         seedState(freshness)

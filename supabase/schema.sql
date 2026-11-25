@@ -411,6 +411,7 @@ declare
     v_opens      text := null;
     v_closes     text := null;
     v_prev_status text;
+    v_evidence   timestamptz;
 begin
     select * into m from public.markets where slug = p_slug and active;
     if not found then return; end if;
@@ -436,7 +437,10 @@ begin
             confidence = 1.0,
             reporters_count = 0,
             source = 'admin',
-            updated_at = now()
+            -- The age of the decision, not of this cron pass. Stamping now() here
+            -- made an official closure issued six hours ago look like it had been
+            -- confirmed seconds ago, on the one card people trust most.
+            updated_at = ov.updated_at
         where market_slug = p_slug;
 
         -- An official closure is the most important row in the history; it used
@@ -510,6 +514,19 @@ begin
         end if;
     end if;
 
+    -- updated_at is the evidence timestamp the screen prints ("آخر تحديث") and the
+    -- client uses to decide whether to show the stale warning. Two wrong versions
+    -- came before this one: now() on every cron pass made a state built from a
+    -- three-hour-old vote look seconds old, and tying it to the moment the status
+    -- last changed made a market confirmed again ten minutes ago look stale
+    -- because the status had not flipped. The honest value is the newest vote that
+    -- is actually being counted: that is the age of the information on screen.
+    select max(server_time) into v_evidence
+      from public.reports
+     where market_slug = p_slug
+       and counted
+       and server_time > now() - interval '3 hours';
+
     update public.market_state set
         status          = v_status,
         opens_at        = v_opens,
@@ -519,7 +536,7 @@ begin
         confidence      = round(v_conf::numeric, 3),
         reporters_count = v_devices,
         source          = 'traders',
-        updated_at      = now()
+        updated_at      = coalesce(v_evidence, updated_at)
     where market_slug = p_slug;
 
     perform public.snapshot_day(p_slug, v_status, v_opens, v_closes, v_conf, 'traders');
