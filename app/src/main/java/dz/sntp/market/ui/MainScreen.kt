@@ -96,6 +96,31 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         }
     }
 
+    // From Android 13 the notification permission is not granted at install, and
+    // nothing ever asked for it: the switch said "on", the worker ran every
+    // morning, and the notification was silently dropped. Asking here is the
+    // difference between the product existing and not.
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        // A refusal must turn the switch off instead of leaving it on over a
+        // worker whose output the system discards.
+        vm.setNotifications(granted)
+    }
+
+    fun setNotificationsWithPermission(enabled: Boolean) {
+        val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+
+        if (enabled && needsAsk) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            vm.setNotifications(enabled)
+        }
+    }
+
     val dark = when (ui.themeMode) {
         1 -> false
         2 -> true
@@ -105,20 +130,41 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
     // Channel + daily job must exist before the first morning.
     LaunchedEffect(Unit) {
         Notifier.ensureChannel(context)
-        if (ui.notifyEnabled) Scheduler.scheduleMorning(context, ui.notifyHour, 0)
+        if (!ui.notifyEnabled) return@LaunchedEffect
+
+        // Android 13+ grants no notification permission at install. The switch
+        // defaults to on and the morning notification is the whole product, so ask
+        // — but only once ever: Android answers a repeat request without showing
+        // anything, which would look like a broken switch rather than a refusal.
+        val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+
+        if (needsAsk && vm.permissionNeverAsked()) {
+            vm.markPermissionAsked()
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else if (!needsAsk) {
+            Scheduler.scheduleMorning(context, ui.notifyHour, 0)
+        }
     }
 
     SntpTheme(darkTheme = dark) {
         if (ui.loading) {
             LoadingScreen()
         } else {
-            MainContent(ui = ui, vm = vm, onVote = ::voteWithPermission)
+            MainContent(ui = ui, vm = vm, onVote = ::voteWithPermission, onNotifyToggle = ::setNotificationsWithPermission)
         }
     }
 }
 
 @Composable
-private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit) {
+private fun MainContent(
+    ui: UiState,
+    vm: MainViewModel,
+    onVote: (String) -> Unit,
+    onNotifyToggle: (Boolean) -> Unit,
+) {
     val context = LocalContext.current
     // Which shop number the user is unlocking right now (null = no dialog).
     var adShop by remember { mutableStateOf<Shop?>(null) }
@@ -161,7 +207,7 @@ private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit
                             reputation = ui.reputation,
                             versionName = ui.versionName,
                             tier = ui.tier,
-                            onNotifyToggle = vm::setNotifications,
+                            onNotifyToggle = onNotifyToggle,
                             onThemeMode = vm::setThemeMode,
                             onOpenBattery = { openBatterySettings(context) },
                             onPrivacy = { openUrl(context, PRIVACY_URL) },

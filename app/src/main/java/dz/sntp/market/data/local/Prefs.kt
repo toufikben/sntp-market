@@ -43,6 +43,7 @@ class Prefs(private val context: Context) {
         val TIER_SOURCE = stringPreferencesKey("entitlement_source")
         val TIER_EXPIRES = longPreferencesKey("entitlement_expires")
         val PROMO_ATTEMPTED = booleanPreferencesKey("promo_attempted")
+        val NOTIFY_ASKED = booleanPreferencesKey("notify_asked")
     }
 
     // ---------------------------------------------------------------- theme
@@ -168,6 +169,18 @@ class Prefs(private val context: Context) {
 
     suspend fun setNotifyEnabled(on: Boolean) {
         context.dataStore.edit { it[K.NOTIFY_ENABLED] = on }
+    }
+
+    /**
+     * Whether the system permission dialog has already been shown. Android answers
+     * a second request silently, so repeating it would look like a broken switch
+     * rather than a user who said no.
+     */
+    suspend fun notifyAsked(): Boolean =
+        context.dataStore.data.map { it[K.NOTIFY_ASKED] ?: false }.first()
+
+    suspend fun setNotifyAsked() {
+        context.dataStore.edit { it[K.NOTIFY_ASKED] = true }
     }
 
     suspend fun setNotifyTime(hour: Int, minute: Int) {

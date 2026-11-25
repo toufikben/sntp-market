@@ -150,6 +150,11 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    /**
+     * The switch reflects whether a notification can actually arrive, not whether
+     * a scheduler is registered. A refusal on Android 13+ must turn it off: the
+     * worker would keep running and the system would keep discarding its output.
+     */
     fun setNotifications(enabled: Boolean) {
         viewModelScope.launch {
             prefs.setNotifyEnabled(enabled)
@@ -161,6 +166,11 @@ class MainViewModel : ViewModel() {
             }
         }
     }
+
+    /** True while the app has never shown the system permission dialog. */
+    suspend fun permissionNeverAsked(): Boolean = !prefs.notifyAsked()
+
+    suspend fun markPermissionAsked() = prefs.setNotifyAsked()
 
     fun clearToast() = _ui.update { it.copy(toast = null) }
 
