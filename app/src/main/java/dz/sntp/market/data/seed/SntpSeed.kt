@@ -1,4 +1,4 @@
-package dz.sntp.market.data.seed
+﻿package dz.sntp.market.data.seed
 
 import dz.sntp.market.data.model.DaySchedule
 import dz.sntp.market.data.model.Shop
@@ -7,6 +7,15 @@ import dz.sntp.market.data.model.Shop
  * Opening data for SNTP (El Hamiz). Every shop below comes from published
  * business listings for the market, so the list is real on day one instead of
  * an empty screen waiting for users.
+ *
+ * `shopNumber` is deliberately left null. The codes that the listings publish
+ * next to these shops (P6GC+85, P6GC+RHJ, …) are Google Plus Codes — short
+ * coordinates — and not the numbering the market itself uses. Printing them as
+ * "#P6GC+85" would hand a trader a number that no shop in the market answers
+ * to, and two of the codes found in the listings (P6GC+R, P6GC+Q) are truncated
+ * to the point that they do not resolve to a location at all. A real market
+ * number has to come from the shop owner, so the field stays empty until one
+ * does.
  *
  * The weekly schedule is deliberately marked as *usual*, never as official:
  * the market has no published timetable, which is the entire reason this app
@@ -46,7 +55,7 @@ object SntpSeed {
             phone = "+213658980632",
             whatsapp = "+213658980632",
             isVerified = false,
-            shopNumber = "P6GC+85",
+            shopNumber = null,
         ),
         Shop(
             id = "sntp-002",
@@ -55,7 +64,7 @@ object SntpSeed {
             phone = null,
             whatsapp = null,
             isVerified = false,
-            shopNumber = "P6GC+RHJ",
+            shopNumber = null,
         ),
         Shop(
             id = "sntp-003",
@@ -64,7 +73,7 @@ object SntpSeed {
             phone = "+213777766681",
             whatsapp = "+213777766681",
             isVerified = false,
-            shopNumber = "P6GC+43P",
+            shopNumber = null,
         ),
         Shop(
             id = "sntp-004",
@@ -73,7 +82,7 @@ object SntpSeed {
             phone = "+213772644553",
             whatsapp = "+213772644553",
             isVerified = false,
-            shopNumber = "P6GC+9J8",
+            shopNumber = null,
         ),
         Shop(
             id = "sntp-005",
@@ -82,7 +91,7 @@ object SntpSeed {
             phone = "+213550142552",
             whatsapp = "+213550142552",
             isVerified = false,
-            shopNumber = "P6GC+R",
+            shopNumber = null,
         ),
         Shop(
             id = "sntp-006",
@@ -91,7 +100,7 @@ object SntpSeed {
             phone = null,
             whatsapp = null,
             isVerified = false,
-            shopNumber = "P6GC+Q",
+            shopNumber = null,
         ),
         Shop(
             id = "sntp-007",
@@ -100,7 +109,7 @@ object SntpSeed {
             phone = "+213552508621",
             whatsapp = "+213552508621",
             isVerified = false,
-            shopNumber = "P6G9+HW6",
+            shopNumber = null,
         ),
     )
 }

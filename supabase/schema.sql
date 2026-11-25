@@ -86,14 +86,18 @@ create table if not exists public.shops (
 
 create index if not exists shops_market_idx on public.shops (market_slug) where active;
 
+-- shop_number stays null: the P6GC+… codes in the public listings are Google
+-- Plus Codes (short coordinates), not the numbering the market uses, and two of
+-- them (P6GC+R, P6GC+Q) are truncated and do not resolve at all. Showing them as
+-- a shop number would send a trader to a number no shop answers to.
 insert into public.shops (id, market_slug, name, category, phone, whatsapp, shop_number) values
-    ('sntp-001', 'sntp-el-hamiz', 'محلات SNTP للملابس الرجالية',            'ملابس رجالية', '+213658980632', '+213658980632', 'P6GC+85'),
-    ('sntp-002', 'sntp-el-hamiz', 'بيع ملابس بالجملة عند السعيد',           'ملابس بالجملة', null,           null,            'P6GC+RHJ'),
-    ('sntp-003', 'sntp-el-hamiz', 'SK 13 SNTP',                              'ملابس',        '+213777766681', '+213777766681', 'P6GC+43P'),
-    ('sntp-004', 'sntp-el-hamiz', 'Market Dz KK',                            'ملابس',        '+213772644553', '+213772644553', 'P6GC+9J8'),
-    ('sntp-005', 'sntp-el-hamiz', 'Tamim SNTP',                              'ملابس',        '+213550142552', '+213550142552', 'P6GC+R'),
-    ('sntp-006', 'sntp-el-hamiz', 'Ab Mode SNTP',                            'ملابس رجالية', null,           null,            'P6GC+Q'),
-    ('sntp-007', 'sntp-el-hamiz', 'شلبي للتسوق — أقمصة وهدايا الحج والعمرة', 'أقمصة وهدايا', '+213552508621', '+213552508621', 'P6G9+HW6')
+    ('sntp-001', 'sntp-el-hamiz', 'محلات SNTP للملابس الرجالية',            'ملابس رجالية', '+213658980632', '+213658980632', null),
+    ('sntp-002', 'sntp-el-hamiz', 'بيع ملابس بالجملة عند السعيد',           'ملابس بالجملة', null,           null,            null),
+    ('sntp-003', 'sntp-el-hamiz', 'SK 13 SNTP',                              'ملابس',        '+213777766681', '+213777766681', null),
+    ('sntp-004', 'sntp-el-hamiz', 'Market Dz KK',                            'ملابس',        '+213772644553', '+213772644553', null),
+    ('sntp-005', 'sntp-el-hamiz', 'Tamim SNTP',                              'ملابس',        '+213550142552', '+213550142552', null),
+    ('sntp-006', 'sntp-el-hamiz', 'Ab Mode SNTP',                            'ملابس رجالية', null,           null,            null),
+    ('sntp-007', 'sntp-el-hamiz', 'شلبي للتسوق — أقمصة وهدايا الحج والعمرة', 'أقمصة وهدايا', '+213552508621', '+213552508621', null)
 on conflict (id) do nothing;
 
 -- -----------------------------------------------------------------------------

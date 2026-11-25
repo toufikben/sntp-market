@@ -89,7 +89,11 @@ Play Console → **Monetize with Play → Products → Subscriptions**. المع
 |---|---|---|
 | `pro_monthly` | اشتراك شهري | 1000 دج |
 | `pro_yearly` | اشتراك سنوي | 9000 دج |
-| `boutique_monthly` | اشتراك شهري | 2500 دج |
+| `boutique_monthly` | — | **لا تُنشئه الآن** |
+
+`boutique_monthly` موجود في الكود (`BillingManager.SKUS`) لكنه **غير معروض في شاشة
+الترقية**: «صفحة موثّقة» و«مفتوح الآن» غير منفّذتين، فلا يجوز بيعها بسعر 2500 دج.
+أنشئه في Play Console فقط بعد بناء الميزتين، ثم أعد `PlanRow` إلى `UpgradeSheet`.
 
 حتى تُنشأ المنتجات وتُفعّل، يظهر في شاشة الترقية «الدفع غير مُفعّل» ويبقى الزر
 معطلاً — لا فشل في منتصف العملية. اختبر الشراء بحساب **License testing** فقط.
