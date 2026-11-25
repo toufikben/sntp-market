@@ -356,10 +356,26 @@ begin
             (market_slug, day, status, opens_at, closes_at, confidence, source)
         values (p_slug, d, p_status, p_opens, p_closes, round(p_conf::numeric, 3), p_source)
         on conflict (market_slug, day) do update set
-            status     = excluded.status,
-            opens_at   = excluded.opens_at,
+            -- The calendar answers one question: did the market operate that day?
+            -- A day that opened at 06:00 and shut at 14:00 was overwritten with
+            -- 'closed' by the evening recompute, so the history denied the market
+            -- had ever opened. 'open' is sticky; the closing time is still kept.
+            status     = case
+                when excluded.source = 'admin' then excluded.status
+                when public.state_history.status = 'open' then 'open'
+                else excluded.status
+            end,
+            opens_at   = coalesce(public.state_history.opens_at, excluded.opens_at),
             closes_at  = excluded.closes_at,
-            confidence = greatest(public.state_history.confidence, excluded.confidence),
+            -- Confidence must describe the status stored beside it. Taking the
+            -- greatest of the two kept the *previous* status's confidence when the
+            -- day flipped (a 0.8 "open" followed by a 0.6 "closed" was recorded as
+            -- closed 0.8), so a weak verdict borrowed a strong one's certainty.
+            confidence = case
+                when public.state_history.status = excluded.status
+                    then greatest(public.state_history.confidence, excluded.confidence)
+                else excluded.confidence
+            end,
             source     = excluded.source,
             updated_at = now();
     else
