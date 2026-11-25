@@ -175,7 +175,11 @@ class MainViewModel : ViewModel() {
         if (_ui.value.voting) return
         viewModelScope.launch {
             _ui.update { it.copy(voting = true) }
-            val outcome: VoteOutcome = votes.vote(status, opensAt, closesAt, reason)
+            // A throw here (a location SecurityException, an unexpected I/O fault)
+            // used to leave voting = true for the rest of the session, which
+            // disables both buttons with no way back short of restarting the app.
+            val outcome = runCatching { votes.vote(status, opensAt, closesAt, reason) }
+                .getOrElse { VoteOutcome(false, false, VoteMessage.FAILED) }
             _ui.update {
                 it.copy(
                     voting = false,

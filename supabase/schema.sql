@@ -597,6 +597,8 @@ declare
     v_dist  double precision;
     v_age   double precision;
     v_last  timestamptz;
+    v_last_eff timestamptz;
+    v_eff   timestamptz;
 begin
     select * into m from public.markets where slug = new.market_slug;
     if not found then
@@ -612,10 +614,27 @@ begin
         raise exception 'device blocked';
     end if;
 
-    -- حد أدنى بين تصويتين من نفس الجهاز (20 دقيقة)
-    select max(server_time) into v_last
-      from public.reports where device_id = new.device_id and market_slug = new.market_slug;
-    if v_last is not null and v_last > now() - interval '20 minutes' then
+    -- حد أدنى بين تصويتين من نفس الجهاز: 20 دقيقة بين الملاحظتين.
+    --
+    -- المشكلة: التصويتات المكتوبة داخل السوق بلا شبكة تصل كلها دفعة واحدة عند
+    -- عودة الاتصال. لو قارنّا بـ server_time (وقت الإدخال) لرُفض كل ما بعد الأول
+    -- بـ 'rate limited' وضاع — والتطبيق كان قد وعد التاجر أنها محفوظة.
+    --
+    -- لذلك نقارن بوقت الملاحظة (client_time) إن وُجد، وهو ما يعبّر عن الواقع:
+    -- تصويتان بفارق 30 دقيقة داخل السوق ليسا تكراراً حتى لو وصلا في نفس الثانية.
+    -- ولا نحسب وقتاً من المستقبل: ساعة الهاتف لا تمنح أحداً أفضلية.
+    --
+    -- النافذة متماثلة (±20 دقيقة): تصويت قديم يعود من الطابور بعد أن صوّت التاجر
+    -- مرة أخرى ليس تكراراً، ولو قارنّاه بالأحدث وحده لاعتُبر كذلك وضاع.
+    v_eff := least(coalesce(new.client_time, now()), now());
+
+    select max(least(coalesce(client_time, server_time), now())) into v_last_eff
+      from public.reports
+     where device_id = new.device_id and market_slug = new.market_slug
+       and least(coalesce(client_time, server_time), now())
+           between v_eff - interval '20 minutes' and v_eff + interval '20 minutes';
+
+    if v_last_eff is not null then
         raise exception 'rate limited';
     end if;
 

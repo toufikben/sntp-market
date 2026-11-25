@@ -21,6 +21,7 @@ import dz.sntp.market.util.MarketTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -52,14 +53,25 @@ class VoteRepository(
     @SuppressLint("MissingPermission")
     suspend fun currentLocation(): Location? = withContext(Dispatchers.IO) {
         if (!hasLocationPermission()) return@withContext null
-        suspendCancellableCoroutine { cont ->
-            val cts = CancellationTokenSource()
-            runCatching {
-                fused.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token)
-                    .addOnSuccessListener { cont.resume(it) }
-                    .addOnFailureListener { cont.resume(null) }
-            }.onFailure { cont.resume(null) }
+        // getCurrentLocation can simply never answer — no fix indoors, no network
+        // for the fused provider's fallback. Without this guard the caller waits
+        // for a location that is not coming, and the vote button stays disabled
+        // (voting = true) until the process dies. The market is exactly where this
+        // happens: a metal-roofed hall with no signal.
+        val timeout = withTimeoutOrNull(LOCATION_TIMEOUT_MS) {
+            suspendCancellableCoroutine { cont ->
+                val cts = CancellationTokenSource()
+                cont.invokeOnCancellation { runCatching { cts.cancel() } }
+                runCatching {
+                    fused.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token)
+                        .addOnSuccessListener { cont.resume(it) }
+                        .addOnFailureListener { cont.resume(null) }
+                }.onFailure { cont.resume(null) }
+            }
         }
+        // A late fix is useless once the vote was already refused, and the token
+        // above is what stops the provider from continuing to work for it.
+        return@withContext timeout
     }
 
     fun proximityTo(location: Location?): Proximity {
@@ -121,9 +133,16 @@ class VoteRepository(
                 // The server refused this vote for a reason retrying cannot fix
                 // (rate limited, device blocked, market unknown). Queuing it would
                 // promise the trader something that never happens.
-                prefs.setLastVoteAt(nowMs)
+                //
+                // Only a real server-side rate limit starts our own cooldown. A
+                // "device blocked" or "market unknown" refusal recorded nothing, so
+                // starting the 20-minute clock would punish the user for a failure
+                // that was not theirs and leave them unable to vote again.
                 val message = when {
-                    error?.mentions("rate limited") == true -> VoteMessage.RATE_LIMITED
+                    error?.mentions("rate limited") == true -> {
+                        prefs.setLastVoteAt(nowMs)
+                        VoteMessage.RATE_LIMITED
+                    }
                     else -> VoteMessage.FAILED
                 }
                 VoteOutcome(false, false, message)
@@ -195,5 +214,12 @@ class VoteRepository(
     private companion object {
         /** Same gap the server enforces; a client that disagrees only gets errors. */
         const val VOTE_COOLDOWN_MS = 20 * 60 * 1000L
+
+        /**
+         * How long to wait for a fix before telling the trader we could not place
+         * them. Long enough for a cold GPS start, short enough that the button
+         * comes back rather than hanging.
+         */
+        const val LOCATION_TIMEOUT_MS = 12_000L
     }
 }
