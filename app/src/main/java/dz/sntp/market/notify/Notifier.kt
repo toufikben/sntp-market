@@ -88,7 +88,7 @@ object Notifier {
         )
 
         val builder = NotificationCompat.Builder(context, CHANNEL_DAILY)
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_market)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

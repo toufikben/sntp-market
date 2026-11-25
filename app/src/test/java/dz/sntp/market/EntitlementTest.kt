@@ -58,4 +58,19 @@ class EntitlementTest {
         assertEquals(Tier.BOUTIQUE, e.tier)
         assertEquals("admin", e.source)
     }
+
+    @Test
+    fun `a play grant carries an end date so it can lapse`() {
+        val monthly = Entitlement.fromSku("pro_monthly")
+        assertTrue(monthly.expiresAtMs > 0)
+        assertFalse(monthly.isExpired())
+
+        val inFortyDays = System.currentTimeMillis() + 40L * 24 * 60 * 60 * 1000L
+        assertTrue(monthly.isExpired(inFortyDays))
+
+        val yearly = Entitlement.fromSku("pro_yearly")
+        val inTwoMonths = System.currentTimeMillis() + 60L * 24 * 60 * 60 * 1000L
+        assertFalse("a yearly plan must outlive two months", yearly.isExpired(inTwoMonths))
+        assertTrue(yearly.isExpired(System.currentTimeMillis() + 400L * 24 * 60 * 60 * 1000L))
+    }
 }

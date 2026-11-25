@@ -55,9 +55,8 @@ fun SettingsSection(
 
     SettingRow(
         title = stringResource(R.string.settings_notify),
-        subtitle = stringResource(
-            R.string.settings_notify_desc
-        ) + " · " + "%02d:%02d".format(notifyHour, 0),
+        subtitle = stringResource(R.string.settings_notify_desc) + " · " +
+            isolate("%02d:%02d".format(notifyHour, 0)),
     ) {
         Switch(
             checked = notifyEnabled,

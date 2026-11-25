@@ -3,6 +3,7 @@ package dz.sntp.market.data.repo
 import dz.sntp.market.data.local.Prefs
 import dz.sntp.market.data.model.Entitlement
 import dz.sntp.market.data.model.Tier
+import dz.sntp.market.util.IsoTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -73,10 +74,7 @@ class EntitlementRepository(
         }.getOrNull()
     }
 
-    private fun parseTime(iso: String?): Long {
-        if (iso.isNullOrBlank() || iso == "null") return 0L
-        return runCatching { java.time.Instant.parse(iso).toEpochMilli() }.getOrDefault(0L)
-    }
+    private fun parseTime(iso: String?): Long = IsoTime.toEpochMs(iso)
 
     private suspend fun save(e: Entitlement) {
         if (e.tier != Tier.FREE) prefs.setEntitlement(e)

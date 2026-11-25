@@ -13,6 +13,7 @@ import dz.sntp.market.data.model.Source
 import dz.sntp.market.data.model.Sponsor
 import dz.sntp.market.data.remote.SupabaseClient
 import dz.sntp.market.data.seed.SntpSeed
+import dz.sntp.market.util.IsoTime
 import dz.sntp.market.util.MarketTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -238,7 +239,7 @@ class MarketRepository(
     suspend fun trustedPhone(): String? = loadShops().firstOrNull { it.hasPhone }?.phone
 }
 
-private fun MarketStateDto.toDomain(freshness: Freshness, cachedAt: Long) = MarketState(
+private fun MarketStateDto.toDomain(freshness: Freshness, fetchedAt: Long) = MarketState(
     status = when (status.lowercase()) {
         "open" -> MarketStatus.OPEN
         "closed" -> MarketStatus.CLOSED
@@ -255,7 +256,11 @@ private fun MarketStateDto.toDomain(freshness: Freshness, cachedAt: Long) = Mark
         "traders" -> Source.TRADERS
         else -> Source.SEED
     },
-    updatedAtEpochMs = cachedAt.takeIf { it > 0 },
+    // The server's own `updated_at` is what "last update" means; the local fetch
+    // time only stands in when an older cache predates that column. Showing the
+    // fetch time told the trader a day-old state had just been updated.
+    updatedAtEpochMs = IsoTime.toEpochMs(updatedAt).takeIf { it > 0 }
+        ?: fetchedAt.takeIf { it > 0 },
     freshness = freshness,
 )
 

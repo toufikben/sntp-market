@@ -649,10 +649,16 @@ language sql
 security definer
 set search_path = public
 as $$
+    -- A device has one row (device_id is the primary key), so the ordering here
+    -- is defensive only. The real protection against a promo overwriting a paid
+    -- subscription lives in claim_promo.
     select e.tier, e.source, e.expires_at
     from public.entitlements e
     where e.device_id = p_device_id
       and (e.expires_at is null or e.expires_at > now())
+    order by
+        case e.source when 'play' then 0 when 'admin' then 1 else 2 end,
+        case e.tier when 'boutique' then 0 when 'pro' then 1 else 2 end
     limit 1;
 $$;
 
@@ -667,8 +673,26 @@ set search_path = public
 as $$
 declare
     v_granted int;
+    v_source  text;
+    v_expires timestamptz;
 begin
     perform pg_advisory_xact_lock(500500);
+
+    select e.source, e.expires_at into v_source, v_expires
+      from public.entitlements e where e.device_id = p_device_id;
+
+    -- A device that already pays through Play keeps paying. Overwriting it with a
+    -- lifetime promo would silently end the subscription relationship: no
+    -- renewal, no cancellation handling, no revenue. An *expired* Play row is a
+    -- different thing and may be replaced. Neither case consumes a promo seat.
+    if v_source = 'play' and (v_expires is null or v_expires > now()) then
+        return query
+            select e.tier, e.source, e.expires_at
+            from public.entitlements e
+            where e.device_id = p_device_id
+            limit 1;
+        return;
+    end if;
 
     select count(*) into v_granted from public.promo_grants;
 
@@ -683,7 +707,9 @@ begin
             tier = excluded.tier,
             source = excluded.source,
             expires_at = excluded.expires_at,
-            updated_at = now();
+            updated_at = now()
+        where entitlements.source in ('promo', 'admin')
+           or entitlements.expires_at <= now();
     end if;
 
     return query

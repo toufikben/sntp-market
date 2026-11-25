@@ -158,7 +158,11 @@ fun WeekSection(week: List<DaySchedule>) {
             )
             val hours = when {
                 day.open == null -> stringResource(R.string.closed_day)
-                day.open != null && day.close != null -> "${day.open} — ${day.close}"
+                day.open != null && day.close != null -> {
+                    // The time pair is a single LTR run inside an Arabic row; without
+                    // the isolate the dash lands between the wrong numbers.
+                    "\u2066${day.open} — ${day.close}\u2069"
+                }
                 else -> stringResource(R.string.unknown_day)
             }
             Text(

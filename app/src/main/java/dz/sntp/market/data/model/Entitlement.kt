@@ -21,10 +21,29 @@ data class Entitlement(
         if (isExpired(now)) Entitlement() else this
 
     companion object {
-        fun fromSku(sku: String): Entitlement = Entitlement(
-            tier = if (sku.startsWith("boutique")) Tier.BOUTIQUE else Tier.PRO,
-            source = "play",
-        )
+        private const val DAY_MS = 24 * 60 * 60 * 1000L
+
+        /**
+         * A Play purchase must carry an end date. Without one a cancelled
+         * monthly plan stayed Pro forever on the device: `restore()` only
+         * replays *active* purchases, and the server never downgrades a Play
+         * grant, so nothing could ever take the tier away again.
+         *
+         * Play itself honours the paid period after a cancellation, so locally
+         * expiring at the end of that period is correct rather than harsh: the
+         * next launch calls restore(), and a live subscription renews the date.
+         */
+        fun fromSku(sku: String, now: Long = System.currentTimeMillis()): Entitlement {
+            val yearly = sku.contains("year", ignoreCase = true) ||
+                sku.contains("annual", ignoreCase = true)
+            // One day of grace: Play posts a renewal a little after the boundary.
+            val days = if (yearly) 367 else 32
+            return Entitlement(
+                tier = if (sku.startsWith("boutique")) Tier.BOUTIQUE else Tier.PRO,
+                source = "play",
+                expiresAtMs = now + days * DAY_MS,
+            )
+        }
 
         fun fromServer(tier: String?, source: String?, expiresAtMs: Long): Entitlement =
             Entitlement(
