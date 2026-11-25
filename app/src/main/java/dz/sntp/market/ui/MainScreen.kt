@@ -131,10 +131,17 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         else -> isSystemInDarkTheme()
     }
 
-    // Channel + daily job must exist before the first morning.
-    LaunchedEffect(Unit) {
+    // Channel + daily job must exist before the first morning. Keyed on the
+    // setting, not on Unit: the DataStore read that fills notifyEnabled finishes
+    // after first composition, so a Unit-keyed effect ran once with the default
+    // true and re-scheduled the worker for a user who had switched notifications
+    // off. The switch then came up off while the daily job ran anyway.
+    LaunchedEffect(ui.notifyEnabled) {
         Notifier.ensureChannel(context)
-        if (!ui.notifyEnabled) return@LaunchedEffect
+        if (!ui.notifyEnabled) {
+            Scheduler.cancel(context)
+            return@LaunchedEffect
+        }
 
         // Android 13+ grants no notification permission at install. The switch
         // defaults to on and the morning notification is the whole product, so ask

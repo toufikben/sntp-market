@@ -38,6 +38,7 @@ class Prefs(private val context: Context) {
         val NOTIFY_MINUTE = intPreferencesKey("notify_minute")
         val LAST_NOTIFIED_DAY = stringPreferencesKey("last_notified_day")
         val LAST_NOTIFIED_STATUS = stringPreferencesKey("last_notified_status")
+        val LAST_SEEN_STATUS = stringPreferencesKey("last_seen_status")
         val THEME_MODE = intPreferencesKey("theme_mode")
         val TIER = stringPreferencesKey("entitlement_tier")
         val TIER_SOURCE = stringPreferencesKey("entitlement_source")
@@ -201,6 +202,17 @@ class Prefs(private val context: Context) {
             it[K.LAST_NOTIFIED_DAY] = day
             it[K.LAST_NOTIFIED_STATUS] = status
         }
+    }
+
+    /**
+     * The status the screen last showed, independent of what we notified about.
+     * A change notification compares against this so a change the user already
+     * saw on screen (or was already pushed at dawn) does not push again.
+     */
+    suspend fun lastSeenStatus(): String? = context.dataStore.data.first()[K.LAST_SEEN_STATUS]
+
+    suspend fun setLastSeenStatus(status: String) {
+        context.dataStore.edit { it[K.LAST_SEEN_STATUS] = status }
     }
 
     private companion object {

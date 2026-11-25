@@ -9,13 +9,17 @@ import dz.sntp.market.data.billing.BillingManager
 import dz.sntp.market.data.model.DaySchedule
 import dz.sntp.market.data.model.Freshness
 import dz.sntp.market.data.model.MarketState
+import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Shop
+import dz.sntp.market.data.model.Source
 import dz.sntp.market.data.model.Sponsor
 import dz.sntp.market.data.model.Tier
 import dz.sntp.market.data.model.VoteMessage
 import dz.sntp.market.data.model.VoteOutcome
 import dz.sntp.market.data.repo.PendingVotes
+import dz.sntp.market.notify.Notifier
 import dz.sntp.market.notify.Scheduler
+import dz.sntp.market.util.MarketTime
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -139,6 +143,12 @@ class MainViewModel : ViewModel() {
             val historyV = runCatching { history.await() }.getOrElse { _ui.value.history }
             val repV = runCatching { rep.await() }.getOrElse { _ui.value.reputation }
 
+            // The spec asks for a notification when the state changes, not only at
+            // dawn. Compared against the last status this device saw, so a change
+            // the user already saw does not push again, and only for real server
+            // truth: a seed guess flipping to UNKNOWN is not news.
+            notifyStateChange(stateV)
+
             _ui.update {
                 it.copy(
                     // A thrown call must never leave the app on the spinner forever;
@@ -200,6 +210,43 @@ class MainViewModel : ViewModel() {
     suspend fun markPermissionAsked() = prefs.setNotifyAsked()
 
     fun clearToast() = _ui.update { it.copy(toast = null) }
+
+    /**
+     * Pushes only on a real change of a confirmed state, and only once per change.
+     * A user who went to sleep with "open" and wakes to "closed" should hear it
+     * during the day, not wait for tomorrow's morning notification.
+     */
+    private suspend fun notifyStateChange(next: MarketState) {
+        if (next.source == Source.SEED) return      // seed is a guess, never news
+        if (next.status == MarketStatus.UNKNOWN) return
+
+        val key = when (next.status) {
+            MarketStatus.OPEN -> "open"
+            MarketStatus.CLOSED -> "closed"
+            MarketStatus.UNKNOWN -> "unknown"
+        }
+
+        // First sight on this device: record it and stay quiet. Pushing here would
+        // greet a brand-new user with a "changed" alert for a market they have
+        // never seen before.
+        val lastSeen = prefs.lastSeenStatus()
+        if (lastSeen == null) {
+            prefs.setLastSeenStatus(key)
+            return
+        }
+        if (lastSeen == key) return
+
+        // What the user was last told, which the morning worker also writes: a
+        // dawn push already said "closed", so a later refresh finding "closed"
+        // must not push a second time.
+        val lastTold = prefs.lastNotified().second
+        if (lastTold != key && prefs.notifyEnabled.first() && Notifier.canNotify(app)) {
+            if (Notifier.showChange(app, next)) {
+                prefs.setLastNotified(MarketTime.isoDay(), key)
+            }
+        }
+        prefs.setLastSeenStatus(key)
+    }
 
     fun setThemeMode(mode: Int) {
         viewModelScope.launch {

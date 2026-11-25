@@ -21,6 +21,7 @@ object Notifier {
 
     const val CHANNEL_DAILY = "sntp_daily"
     private const val NOTIF_ID = 4101
+    private const val NOTIF_ID_CHANGE = 4102
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -50,35 +51,54 @@ object Notifier {
     }
 
     /**
-     * One notification, once a day, and only when the state differs from what we
-     * last told the user. Repeating "open" every morning trains people to swipe
-     * it away, which destroys the only channel we have.
+     * One notification, once a day. Returns false when nothing was posted, so the
+     * caller does not spend the day's only slot on a notification the system
+     * dropped (permission revoked, channel blocked).
      */
-    fun showMorning(context: Context, state: MarketState) {
-        if (!canNotify(context)) return
+    fun showMorning(context: Context, state: MarketState): Boolean {
+        if (!canNotify(context)) return false
         ensureChannel(context)
+        return post(context, NOTIF_ID, titleOf(context, state), bodyOf(context, state), state)
+    }
 
-        val title: String
-        val body: String
-        when (state.status) {
-            MarketStatus.OPEN -> {
-                title = context.getString(R.string.status_open)
-                body = state.closesAtLocal
-                    ?.let { context.getString(R.string.notif_closes_at, it) }
-                    ?: context.getString(R.string.trust_traders)
-            }
-            MarketStatus.CLOSED -> {
-                title = context.getString(R.string.status_closed)
-                body = state.opensAtLocal
-                    ?.let { context.getString(R.string.notif_opens_at, it) }
-                    ?: context.getString(R.string.settings_disclaimer)
-            }
-            MarketStatus.UNKNOWN -> {
-                title = context.getString(R.string.status_unknown)
-                body = context.getString(R.string.notif_no_confirmation)
-            }
-        }
+    /**
+     * The other half of the product's promise: tell the user when the market opens
+     * or shuts inside the day, not only at dawn. Without this, a trader who checked
+     * at 07:00 and found it shut learned nothing when it opened at 09:00.
+     *
+     * A separate id so it stacks next to the morning notification instead of
+     * replacing it.
+     */
+    fun showChange(context: Context, state: MarketState): Boolean {
+        if (!canNotify(context)) return false
+        ensureChannel(context)
+        val title = context.getString(R.string.notif_changed_title, titleOf(context, state))
+        return post(context, NOTIF_ID_CHANGE, title, bodyOf(context, state), state)
+    }
 
+    private fun titleOf(context: Context, state: MarketState): String = when (state.status) {
+        MarketStatus.OPEN -> context.getString(R.string.status_open)
+        MarketStatus.CLOSED -> context.getString(R.string.status_closed)
+        MarketStatus.UNKNOWN -> context.getString(R.string.status_unknown)
+    }
+
+    private fun bodyOf(context: Context, state: MarketState): String = when (state.status) {
+        MarketStatus.OPEN -> state.closesAtLocal
+            ?.let { context.getString(R.string.notif_closes_at, it) }
+            ?: context.getString(R.string.trust_traders)
+        MarketStatus.CLOSED -> state.opensAtLocal
+            ?.let { context.getString(R.string.notif_opens_at, it) }
+            ?: context.getString(R.string.settings_disclaimer)
+        MarketStatus.UNKNOWN -> context.getString(R.string.notif_no_confirmation)
+    }
+
+    private fun post(
+        context: Context,
+        id: Int,
+        title: String,
+        body: String,
+        state: MarketState,
+    ): Boolean {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -100,8 +120,9 @@ object Notifier {
             builder.setSubText(context.getString(R.string.notif_seed_subtext))
         }
 
-        runCatching {
-            NotificationManagerCompat.from(context).notify(NOTIF_ID, builder.build())
-        }
+        return runCatching {
+            NotificationManagerCompat.from(context).notify(id, builder.build())
+            true
+        }.getOrDefault(false)
     }
 }
