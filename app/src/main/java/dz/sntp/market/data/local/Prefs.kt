@@ -29,6 +29,7 @@ class Prefs(private val context: Context) {
     private object K {
         val REPUTATION = intPreferencesKey("reputation_x100")
         val LAST_VOTE_DAY = stringPreferencesKey("last_vote_day")
+        val LAST_VOTE_AT = longPreferencesKey("last_vote_at")
         val CACHED_STATE = stringPreferencesKey("cached_state_json")
         val CACHED_STATE_AT = longPreferencesKey("cached_state_at")
         val CACHED_WEEK = stringPreferencesKey("cached_week_json")
@@ -115,6 +116,19 @@ class Prefs(private val context: Context) {
 
     suspend fun setLastVoteDay(day: String) {
         context.dataStore.edit { it[K.LAST_VOTE_DAY] = day }
+    }
+
+    /**
+     * When this device last reported a state. The market can open at 06:00 and
+     * shut by 12:00 on the same day, so "one vote per calendar day" froze the
+     * screen on the morning value and made the app useless after lunch. What the
+     * server actually enforces is a 20-minute gap, so that is what we mirror.
+     */
+    suspend fun lastVoteAt(): Long =
+        context.dataStore.data.map { it[K.LAST_VOTE_AT] ?: 0L }.first()
+
+    suspend fun setLastVoteAt(ms: Long) {
+        context.dataStore.edit { it[K.LAST_VOTE_AT] = ms }
     }
 
     suspend fun reputation(): Int =

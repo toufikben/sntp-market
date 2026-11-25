@@ -12,6 +12,7 @@
     <string name="market_area">El Hamiz · Dar El Beïda · Alger</string>
     <string name="opens_at">Ouvre à %1$s</string>
     <string name="closes_at">Ferme à %1$s</string>
+    <string name="usual_hours">Habituel : %1$s — %2$s</string>
     <string name="reason_label">Raison</string>
     <string name="confidence_label">Fiabilité</string>
     <string name="confirmers_count">%1$d commerçants ont confirmé</string>
@@ -30,7 +31,7 @@
     <string name="notif_seed_subtext">Horaire habituel — non confirmé</string>
 
     <string name="vote_question">Le marché est-il ouvert maintenant ?</string>
-    <string name="vote_question_hint">Votre vote ne compte que si vous êtes près du marché</string>
+    <string name="vote_question_hint">Votre vote ne compte que si vous êtes près du marché · un vote toutes les 20 minutes</string>
     <string name="vote_queued_count">%1$d vote(s) en attente, envoyés au retour du réseau</string>
     <string name="vote_open">Je suis au marché — ouvert</string>
     <string name="vote_closed">Le marché est fermé</string>
@@ -38,8 +39,8 @@
     <string name="vote_queued">Votre vote partira dès le retour du réseau</string>
     <string name="vote_need_location">Votre position est nécessaire pour confirmer la proximité</string>
     <string name="vote_too_far">Vous êtes trop loin du marché</string>
-    <string name="vote_already">Vous avez déjà voté aujourd\'hui</string>
-    <string name="vote_rate_limited">Trop de tentatives, réessayez plus tard</string>
+    <string name="vote_already">Vous avez voté récemment. L\'état a changé ? Attendez la fin du délai.</string>
+    <string name="vote_rate_limited">Attendez 20 minutes entre deux votes</string>
 
     <string name="trust_admin">Source : administration du marché</string>
     <string name="trust_traders">Source : vote des commerçants</string>

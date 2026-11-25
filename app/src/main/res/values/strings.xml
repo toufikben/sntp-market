@@ -14,6 +14,7 @@
     <string name="market_area">الحميز · الدار البيضاء · الجزائر العاصمة</string>
     <string name="opens_at">يفتح %1$s</string>
     <string name="closes_at">يغلق %1$s</string>
+    <string name="usual_hours">المعتاد: %1$s — %2$s</string>
     <string name="reason_label">السبب</string>
     <string name="confidence_label">نسبة الموثوقية</string>
     <string name="confirmers_count">%1$d تاجراً أكّدوا</string>
@@ -33,7 +34,7 @@
 
     <!-- Voting -->
     <string name="vote_question">هل السوق مفتوح الآن؟</string>
-    <string name="vote_question_hint">صوّتك يُحسب فقط إذا كنت قريباً من السوق</string>
+    <string name="vote_question_hint">صوّتك يُحسب فقط إذا كنت قريباً من السوق · تصويت واحد كل 20 دقيقة</string>
     <string name="vote_queued_count">%1$d تصويت في الانتظار سيُرسل عند عودة الشبكة</string>
     <string name="vote_open">أنا في السوق — مفتوح</string>
     <string name="vote_closed">السوق مغلق</string>
@@ -41,8 +42,8 @@
     <string name="vote_queued">سيُرسل تصويتك عند عودة الاتصال</string>
     <string name="vote_need_location">نحتاج موقعك للتأكد أنك قريب من السوق</string>
     <string name="vote_too_far">أنت بعيد عن السوق، لا يمكن احتساب تصويتك</string>
-    <string name="vote_already">صوّتت بالفعل اليوم</string>
-    <string name="vote_rate_limited">محاولات كثيرة، حاول بعد قليل</string>
+    <string name="vote_already">صوّتت قبل قليل. تغيّرت الحالة؟ انتظر انتهاء المهلة.</string>
+    <string name="vote_rate_limited">انتظر 20 دقيقة بين تصويتين</string>
 
     <!-- Trust -->
     <string name="trust_admin">المصدر: إدارة السوق</string>

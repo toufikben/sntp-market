@@ -97,14 +97,11 @@ class MarketRepository(
     private fun seedState(freshness: Freshness): MarketState {
         val iso = MarketTime.isoDayNumber()
         val day = SntpSeed.week.firstOrNull { it.day == iso }
-        val nowMin = MarketTime.nowMinutes()
-        val within = MarketTime.isWithin(day?.open, day?.close, nowMin)
+        // A guessed schedule is not a state. Reporting "closed" from the usual
+        // timetable is precisely the confident lie the product exists to avoid,
+        // so the seed lands on UNKNOWN and the card prints the usual window.
         return MarketState(
-            status = when {
-                day?.open == null -> MarketStatus.CLOSED
-                within -> MarketStatus.OPEN
-                else -> MarketStatus.CLOSED
-            },
+            status = MarketStatus.UNKNOWN,
             opensAtLocal = day?.open,
             closesAtLocal = day?.close,
             reasonAr = day?.noteAr,

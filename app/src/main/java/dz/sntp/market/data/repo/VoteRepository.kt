@@ -73,9 +73,10 @@ class VoteRepository(
         closesAt: String? = null,
         reason: String? = null,
     ): VoteOutcome = withContext(Dispatchers.IO) {
-        val today = MarketTime.isoDay()
-        if (prefs.lastVoteDay() == today) {
-            return@withContext VoteOutcome(false, false, VoteMessage.ALREADY_VOTED)
+        val nowMs = System.currentTimeMillis()
+        val sinceLast = nowMs - prefs.lastVoteAt()
+        if (sinceLast < VOTE_COOLDOWN_MS) {
+            return@withContext VoteOutcome(false, false, VoteMessage.RATE_LIMITED)
         }
 
         val loc = currentLocation()
@@ -104,11 +105,14 @@ class VoteRepository(
 
         val result = marketRepository.postReport(payload)
         if (result.isSuccess) {
-            prefs.setLastVoteDay(today)
+            prefs.setLastVoteAt(nowMs)
+            prefs.setLastVoteDay(MarketTime.isoDay())
             VoteOutcome(true, false, VoteMessage.SENT)
         } else {
             // Never lose the trader's observation: it goes out on reconnect.
             PendingVotes.enqueue(context, payload)
+            // Count the attempt locally too, so the button cannot be farmed offline.
+            prefs.setLastVoteAt(nowMs)
             VoteOutcome(true, true, VoteMessage.QUEUED)
         }
     }
@@ -126,4 +130,9 @@ class VoteRepository(
 
     @Suppress("unused")
     private fun encodeReport(r: ReportDto) = json.encodeToString(ReportDto.serializer(), r)
+
+    private companion object {
+        /** Same gap the server enforces; a client that disagrees only gets errors. */
+        const val VOTE_COOLDOWN_MS = 20 * 60 * 1000L
+    }
 }

@@ -110,7 +110,18 @@ private fun statusText(s: MarketState): String = when (s.status) {
 private fun primaryTimeLine(s: MarketState): String? = when (s.status) {
     MarketStatus.OPEN -> s.closesAtLocal?.let { stringResource(R.string.closes_at, it) }
     MarketStatus.CLOSED -> s.opensAtLocal?.let { stringResource(R.string.opens_at, it) }
-    MarketStatus.UNKNOWN -> null
+    // Nothing is confirmed, so the honest line is the usual window, labelled as usual.
+    MarketStatus.UNKNOWN -> {
+        val open = s.opensAtLocal
+        val close = s.closesAtLocal
+        if (open != null && close != null) {
+            stringResource(R.string.usual_hours, open, close)
+        } else if (open != null) {
+            stringResource(R.string.opens_at, open)
+        } else {
+            null
+        }
+    }
 }
 
 @Composable
