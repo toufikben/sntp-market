@@ -175,7 +175,7 @@ class VoteRepository(
         runCatching {
             val row = json.parseToJsonElement(raw).jsonArray.firstOrNull()?.jsonObject
                 ?: return@runCatching null
-            val rep = row["reputation"]?.jsonPrimitive?.text()?.toIntOrNull()
+            val rep = row["reputation"]?.jsonPrimitive?.content?.toIntOrNull()
                 ?: return@runCatching null
             prefs.setReputation(rep)
             rep
