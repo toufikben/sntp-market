@@ -144,16 +144,23 @@ class VoteRepository(
      */
     suspend fun flushPending(): Int = withContext(Dispatchers.IO) {
         val items = PendingVotes.drain(context)
+        if (items.isEmpty()) return@withContext 0
+
         var sent = 0
+        // The queue is rebuilt as we go and only removed once it is empty: the
+        // votes inside the market were typed where there is no signal, so losing
+        // them to a killed process is not recoverable for the trader.
+        val remaining = mutableListOf<String>()
         for (item in items) {
             val res = marketRepository.postReport(item)
             if (res.isSuccess) {
                 sent++
             } else {
                 val permanent = (res.exceptionOrNull() as? ApiException)?.isPermanent == true
-                if (!permanent) PendingVotes.enqueue(context, item)
+                if (!permanent) remaining += item
             }
         }
+        PendingVotes.replace(context, remaining)
         sent
     }
 

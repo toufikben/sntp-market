@@ -29,9 +29,29 @@ object PendingVotes {
     fun drain(context: Context): List<String> {
         val f = file(context)
         if (!f.exists()) return emptyList()
-        val items = runCatching { f.readLines().filter { it.isNotBlank() } }.getOrDefault(emptyList())
-        runCatching { f.delete() }
-        return items
+        return runCatching { f.readLines().filter { it.isNotBlank() } }.getOrDefault(emptyList())
+    }
+
+    /**
+     * Replaces the queue with [items]. The old queue is dropped only after the new
+     * one is safely written, so a crash during a flush cannot lose the votes
+     * collected inside the market — where there is no signal to record them again.
+     */
+    @Synchronized
+    fun replace(context: Context, items: List<String>) {
+        runCatching {
+            val f = file(context)
+            if (items.isEmpty()) {
+                f.delete()
+                return@runCatching
+            }
+            val tmp = java.io.File(context.filesDir, "$FILE.tmp")
+            tmp.writeText(items.takeLast(MAX_ITEMS).joinToString("\n"))
+            if (!tmp.renameTo(f)) {
+                f.writeText(tmp.readText())
+                tmp.delete()
+            }
+        }
     }
 
     @Synchronized
