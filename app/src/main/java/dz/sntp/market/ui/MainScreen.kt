@@ -144,7 +144,12 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         if (needsAsk && vm.permissionNeverAsked()) {
             vm.markPermissionAsked()
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else if (!needsAsk) {
+        } else if (needsAsk) {
+            // Already asked before and still not granted: the user said no, or
+            // revoked it in system settings. Leaving the switch on would promise a
+            // notification that the system drops, so bring it in line with reality.
+            vm.setNotifications(false)
+        } else {
             Scheduler.scheduleMorning(context, ui.notifyHour, 0)
         }
     }
