@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dz.sntp.market.R
 import dz.sntp.market.data.model.Shop
@@ -152,6 +156,18 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         } else {
             Scheduler.scheduleMorning(context, ui.notifyHour, 0)
         }
+    }
+
+    // The market shuts at noon. An app opened at 07:00 and returned to at 14:00
+    // kept showing the morning state with no warning: nothing refreshed outside
+    // the ViewModel's first load, a manual tap, or a vote.
+    val lifecycle = LocalLifecycleOwner.current
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) vm.refreshIfStale()
+        }
+        lifecycle.lifecycle.addObserver(observer)
+        onDispose { lifecycle.lifecycle.removeObserver(observer) }
     }
 
     SntpTheme(darkTheme = dark) {

@@ -101,7 +101,20 @@ class MainViewModel : ViewModel() {
         refresh(initial = true)
     }
 
+    private var lastRefreshAt = 0L
+
+    /**
+     * Called when the screen comes back to the foreground. The market can open and
+     * shut inside one morning, so a state older than a few minutes is not worth
+     * showing as current; the screen would otherwise lie from lunchtime onward.
+     */
+    fun refreshIfStale() {
+        val age = System.currentTimeMillis() - lastRefreshAt
+        if (age > RESUME_REFRESH_MS) refresh()
+    }
+
     fun refresh(initial: Boolean = false) {
+        lastRefreshAt = System.currentTimeMillis()
         viewModelScope.launch {
             if (initial) _ui.update { it.copy(loading = true) }
 
@@ -197,6 +210,11 @@ class MainViewModel : ViewModel() {
     override fun onCleared() {
         billing.close()
         super.onCleared()
+    }
+
+    private companion object {
+        /** Below this, a resume refresh would only add requests without new truth. */
+        const val RESUME_REFRESH_MS = 5 * 60 * 1000L
     }
 }
 
