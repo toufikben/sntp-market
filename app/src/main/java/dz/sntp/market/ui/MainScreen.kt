@@ -158,7 +158,6 @@ private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit
                             notifyEnabled = ui.notifyEnabled,
                             notifyHour = ui.notifyHour,
                             themeMode = ui.themeMode,
-                            recoveryCode = ui.recoveryCode,
                             reputation = ui.reputation,
                             versionName = ui.versionName,
                             tier = ui.tier,

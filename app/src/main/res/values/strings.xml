@@ -95,8 +95,6 @@
     <string name="settings_battery">منع إيقاف التطبيق</string>
     <string name="settings_battery_desc">بعض الهواتف توقف الإشعارات. اضغط للسماح بالعمل في الخلفية</string>
     <string name="settings_open">فتح</string>
-    <string name="settings_recovery">كود استرجاع السمعة</string>
-    <string name="settings_recovery_desc">احفظه لاستعادة وزنك عند تغيير الهاتف</string>
     <string name="settings_reputation">موثوقيتك</string>
     <string name="settings_reputation_value">موثوقيتك: %1$s</string>
     <string name="settings_theme">المظهر</string>

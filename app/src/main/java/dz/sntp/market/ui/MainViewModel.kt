@@ -36,7 +36,6 @@ data class UiState(
     val toast: VoteMessage? = null,
     val configured: Boolean = false,
     val reputation: Int = 100,
-    val recoveryCode: String = "",
     val notifyEnabled: Boolean = true,
     val notifyHour: Int = 5,
     val themeMode: Int = 0,
@@ -87,7 +86,6 @@ class MainViewModel : ViewModel() {
             val stored = app.entitlements.current()
             _ui.update {
                 it.copy(
-                    recoveryCode = prefs.recoveryCode(),
                     notifyEnabled = prefs.notifyEnabled.first(),
                     notifyHour = prefs.notifyHour.first(),
                     themeMode = prefs.themeMode(),
@@ -112,7 +110,9 @@ class MainViewModel : ViewModel() {
             val shops = repo.loadShops()
             val sponsors = repo.loadSponsors()
             val history = repo.loadHistory()
-            val rep = prefs.reputation()
+            // Ask the server for the score it actually computed; the cached value
+            // is only a fallback for the offline case.
+            val rep = votes.syncReputation() ?: prefs.reputation()
 
             _ui.update {
                 it.copy(

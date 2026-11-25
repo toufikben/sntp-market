@@ -35,7 +35,6 @@ fun SettingsSection(
     notifyEnabled: Boolean,
     notifyHour: Int,
     themeMode: Int,
-    recoveryCode: String,
     reputation: Int,
     versionName: String,
     tier: Tier,
@@ -113,31 +112,12 @@ fun SettingsSection(
 
     Column(Modifier.padding(vertical = 12.dp)) {
         Text(
-            text = stringResource(R.string.settings_recovery),
+            text = stringResource(R.string.settings_reputation),
             style = MaterialTheme.typography.bodyLarge,
             color = SntpColors.TextPrimary,
             fontWeight = FontWeight.SemiBold,
         )
-        Text(
-            text = stringResource(R.string.settings_recovery_desc),
-            style = MaterialTheme.typography.labelSmall,
-            color = SntpColors.TextSecondary,
-        )
-        Spacer(Modifier.height(10.dp))
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(SntpColors.SandDim)
-                .padding(horizontal = 14.dp, vertical = 10.dp)
-        ) {
-            Text(
-                text = recoveryCode,
-                style = MaterialTheme.typography.titleLarge,
-                color = SntpColors.DeepGreen,
-                fontWeight = FontWeight.Black,
-            )
-        }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = stringResource(R.string.settings_reputation_value, isolate("$reputation / 180")),
             style = MaterialTheme.typography.labelSmall,

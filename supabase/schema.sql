@@ -381,9 +381,17 @@ declare
     v_status     text := 'unknown';
     v_opens      text := null;
     v_closes     text := null;
+    v_prev_status text;
 begin
     select * into m from public.markets where slug = p_slug and active;
     if not found then return; end if;
+
+    -- What the screen says right now. Reputation must only move when this
+    -- actually changes, not on every cron pass.
+    select status into v_prev_status
+      from public.market_state where market_slug = p_slug;
+    -- A brand-new market has no row yet; coalesce so the comparison below works.
+    v_prev_status := coalesce(v_prev_status, 'unknown');
 
     -- 1) تجاوز الإدارة يتقدّم دائماً
     select * into ov from public.market_override
@@ -486,6 +494,43 @@ begin
     where market_slug = p_slug;
 
     perform public.snapshot_day(p_slug, v_status, v_opens, v_closes, v_conf, 'traders');
+
+    -- Reputation: a vote that matched the consensus raises the device; a lone
+    -- dissent lowers it. Until now this column kept its default forever while the
+    -- app told users their score comes from agreeing with later consensus.
+    --
+    -- It must move only on a real *change* of state. This function runs every five
+    -- minutes from cron and after every insert; rewarding on each run would push
+    -- every trader to 180 within an hour and make the weight meaningless.
+    -- Scores stay in 40..180: one bad day must not make a trader worthless, and
+    -- one good day must not make a stranger authoritative.
+    if v_status in ('open','closed') and v_prev_status is distinct from v_status then
+        update public.devices d set
+            votes_agreed = d.votes_agreed + 1,
+            reputation = least(180, d.reputation + 4)
+        where d.device_id in (
+            select r.device_id from public.reports r
+            where r.market_slug = p_slug
+              and r.counted
+              and r.status = v_status
+              and r.server_time > now() - interval '3 hours'
+        );
+
+        update public.devices d set
+            votes_dissented = d.votes_dissented + 1,
+            reputation = greatest(40, d.reputation - 3)
+        where d.device_id in (
+            -- Only a *fresh* contradiction counts. A trader who reported "open" at
+            -- 12:30 was right at the time; when the market closes at 14:00 his vote
+            -- is still inside the 3-hour window but must not be scored as a dissent,
+            -- or the honest early reporter is punished by hindsight alone.
+            select r.device_id from public.reports r
+            where r.market_slug = p_slug
+              and r.counted
+              and r.status <> v_status
+              and r.server_time > now() - interval '45 minutes'
+        );
+    end if;
 end;
 $$;
 
@@ -725,6 +770,24 @@ revoke all on function public.my_entitlement(text) from public;
 revoke all on function public.claim_promo(text) from public;
 grant execute on function public.my_entitlement(text) to anon, authenticated;
 grant execute on function public.claim_promo(text) to anon, authenticated;
+
+-- The score the settings screen shows. It is computed server-side from votes that
+-- matched the consensus, so the client must read it rather than keep its own
+-- counter — which is what it did before, leaving every device at 100 forever.
+create or replace function public.my_reputation(p_device_id text)
+returns table (reputation int, votes_total int, votes_agreed int, votes_dissented int)
+language sql
+security definer
+set search_path = public
+as $$
+    select d.reputation, d.votes_total, d.votes_agreed, d.votes_dissented
+    from public.devices d
+    where d.device_id = p_device_id
+    limit 1;
+$$;
+
+revoke all on function public.my_reputation(text) from public;
+grant execute on function public.my_reputation(text) to anon, authenticated;
 
 -- جداول لا يلمسها العميل إطلاقاً. بدون سياسة = منع كامل، لكن يجب تفعيل RLS
 -- صراحةً وإلا صارت مفتوحة للقراءة والكتابة بمفتاح anon.

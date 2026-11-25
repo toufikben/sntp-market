@@ -195,13 +195,19 @@ private fun InfoRow(label: String, value: String, dim: Boolean = false) {
     }
 }
 
-private fun reasonText(s: MarketState): String? =
-    s.reasonAr?.takeIf { it.isNotBlank() } ?: s.reasonFr?.takeIf { it.isNotBlank() }
+@Composable
+private fun reasonText(s: MarketState): String? = when (displayLocale().language) {
+    "fr" -> s.reasonFr?.takeIf { it.isNotBlank() } ?: s.reasonAr?.takeIf { it.isNotBlank() }
+    else -> s.reasonAr?.takeIf { it.isNotBlank() } ?: s.reasonFr?.takeIf { it.isNotBlank() }
+}
 
+@Composable
 private fun confidenceText(s: MarketState): String = when {
     s.source == Source.ADMIN -> "100%"
     s.confidence <= 0.0 -> "—"
-    else -> "${(s.confidence * 100).toInt()}%"
+    // A bare "85%" flips to "%85" next to Arabic text; the isolate keeps the
+    // number and its sign in reading order.
+    else -> "\u2066${(s.confidence * 100).toInt()}%\u2069"
 }
 
 @Composable

@@ -20,9 +20,8 @@ private val Context.dataStore by preferencesDataStore(name = "sntp_prefs")
  * Everything that must survive a relaunch lives here. Deliberately small: the
  * launch path reads it once before any network call.
  *
- * Device identity and the recovery code are plain files rather than DataStore
- * entries because they are read synchronously from Application.onCreate, where a
- * suspend call is not available.
+ * Device identity is a plain file rather than a DataStore entry because it is read
+ * synchronously from Application.onCreate, where a suspend call is not available.
  */
 class Prefs(private val context: Context) {
 
@@ -86,16 +85,9 @@ class Prefs(private val context: Context) {
     /** Stable per-install identity. Sent with every report, never leaves the device otherwise. */
     val deviceId: String by lazy { readOrCreate("device_id.txt", 16) }
 
-    /**
-     * Printed once in settings so a trader who changes phone can carry their
-     * reputation across. Blocks of four, unambiguous alphabet.
-     */
-    fun recoveryCode(): String = readOrCreate("recovery_code.txt", 12, alphabet = CODE_ALPHABET)
-
     private fun readOrCreate(
         name: String,
         length: Int,
-        alphabet: String = HEX,
     ): String {
         val file = File(context.filesDir, name)
         val existing = runCatching { file.readText().trim() }.getOrNull()
@@ -103,7 +95,7 @@ class Prefs(private val context: Context) {
 
         val fresh = buildString {
             val rnd = java.security.SecureRandom()
-            repeat(length) { append(alphabet[rnd.nextInt(alphabet.length)]) }
+            repeat(length) { append(HEX[rnd.nextInt(HEX.length)]) }
         }
         runCatching { file.writeText(fresh) }
         return fresh
@@ -200,7 +192,5 @@ class Prefs(private val context: Context) {
 
     private companion object {
         const val HEX = "0123456789abcdef"
-        /** No 0/O or 1/I: this string gets read aloud over the phone. */
-        const val CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
     }
 }

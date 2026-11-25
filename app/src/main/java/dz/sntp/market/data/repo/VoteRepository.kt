@@ -23,13 +23,17 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.coroutines.resume
 
 /**
  * Community voting. Three defences keep a single trader from inventing a state:
- * a real GPS fix inside the market radius, one vote per device per day, and a
- * server-side check we cannot bypass from here.
+ * a real GPS fix inside the market radius, one vote per device every 20 minutes
+ * (the market can open, fill and shut inside one day, so a daily limit froze the
+ * screen at its morning value), and a server-side check we cannot bypass here.
  */
 class VoteRepository(
     private val context: Context,
@@ -151,6 +155,31 @@ class VoteRepository(
             }
         }
         sent
+    }
+
+    /**
+     * The server's view of this device's score. Settings used to display a local
+     * constant of 100 that never moved, while the screen claimed the number grows
+     * when your votes match the consensus. It now grows there and is read here.
+     * Returns null when the server cannot be asked; the cached value stays.
+     */
+    suspend fun syncReputation(): Int? = withContext(Dispatchers.IO) {
+        if (!marketRepository.isConfigured) return@withContext null
+
+        val payload = buildJsonObject {
+            put("p_device_id", prefs.deviceId)
+        }.toString()
+        val raw = marketRepository.rpc("my_reputation", payload).getOrNull()
+            ?: return@withContext null
+
+        runCatching {
+            val row = json.parseToJsonElement(raw).jsonArray.firstOrNull()?.jsonObject
+                ?: return@runCatching null
+            val rep = row["reputation"]?.jsonPrimitive?.text?.toIntOrNull()
+                ?: return@runCatching null
+            prefs.setReputation(rep)
+            rep
+        }.getOrNull()
     }
 
     @Suppress("unused")
