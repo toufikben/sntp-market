@@ -126,6 +126,7 @@
     <string name="plan_boutique_features">كل مزايا Pro · صفحة موثّقة · «مفتوح الآن»</string>
     <string name="upgrade_buy">اشتراك</string>
     <string name="upgrade_unavailable">الدفع عبر Google Play لم يُفعّل لهذا الإصدار بعد.</string>
+    <string name="upgrade_current">خطتك الحالية</string>
     <string name="ad_label">رعاية</string>
     <string name="ad_placeholder_title">مساحة إعلانية</string>
     <string name="ad_placeholder_body">أعلن عن محلك أو خدمتك لتجار سوق سانتيبي.</string>

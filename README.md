@@ -28,9 +28,11 @@
 ```
 app/
   data/
-    model/      كائنات المجال + Freshness (LIVE/CACHED/STALE/OFFLINE)
+    model/      كائنات المجال + Freshness (LIVE/CACHED/STALE/OFFLINE) + Entitlement
     remote/     SupabaseClient — PostgREST خام، بلا SDK
     repo/       MarketRepository (مصدر الحقيقة) · VoteRepository · PendingVotes
+                EntitlementRepository (Play / promo / admin)
+    billing/    BillingManager — Play Billing 7، بلا منطق شبكة
     seed/       بيانات سوق سانتيبي الافتتاحية
     local/      Prefs (DataStore)
   notify/       Notifier · MorningWorker · Scheduler
@@ -114,12 +116,22 @@ echo "SUPABASE_ANON_KEY=eyJ..." >> secrets.properties
 
 | الخطة | السعر | المحتوى |
 |---|---|---|
-| مجاني | 0 | حالة اليوم · الجدول · السجل · 3 مواضع إعلان |
-| Pro | 1000 دج/شهر · 9000 دج/سنة | بلا إعلانات · إشعارات · أرقام المحلات · 3 أسواق |
-| Boutique | 2500 دج/شهر | صفحة موثّقة · «مفتوح الآن» · كتالوج مصغّر |
+| مجاني | 0 | حالة اليوم · الجدول · السجل · مواضع الرعاية |
+| Pro | 1000 دج/شهر · 9000 دج/سنة | بلا رعاية · أرقام المحلات · إشعارات |
+| Boutique | 2500 دج/شهر | كل مزايا Pro · صفحة موثّقة · «مفتوح الآن» |
 
-الدفع عبر **Google Play Billing**، والتحقق سيرفرياً عبر RTDN. «Pro مجاني لأول 500 مستخدم»
-يُنفَّذ بطبقة `entitlements` موحّدة (مصدر `promo`)، لا بعرض داخل Play.
+الدفع عبر **Google Play Billing** (المعرّفات: `pro_monthly` · `pro_yearly` ·
+`boutique_monthly`). «Pro مجاني لأول 500 مستخدم» يُنفَّذ بطبقة `entitlements`
+موحّدة (مصدر `promo`) عبر دالة `claim_promo` على السيرفر بعدّاد مقفول — لا بعرض
+داخل Play، ولا يمكن تجاوزه من التطبيق.
+
+**الرعاية المباشرة اليوم** بدل شبكة إعلانات: ثلاثة مواضع من جدول `sponsors`
+(المحلات · السجل · بطاقة فتح رقم محل). لا شيء منها على شاشة الحالة، وتختفي
+كلها لمشتركي Pro.
+
+> **قبل تحصيل أي مبلغ:** التحقق من `purchaseToken` يجري حالياً على الجهاز فقط.
+> يلزم Edge Function تتحقق عبر Android Publisher API و RTDN قبل تفعيل الأسعار
+> الحقيقية. التفاصيل في `SETUP.md`.
 
 ---
 
@@ -130,7 +142,8 @@ echo "SUPABASE_ANON_KEY=eyJ..." >> secrets.properties
 - [x] M2 — التصويت + الأوزان + طابور offline
 - [x] M3 — إشعار الصباح + WorkManager
 - [x] M4 — دليل المحلات + السجل الشهري
-- [ ] M5 — Play Billing + الإعلانات
+- [x] M5 — الاستحقاقات + Play Billing + مواضع الرعاية (المنتجات تنتظر Play Console)
+- [x] الوضع الليلي + المظهر (تلقائي/فاتح/داكن)
 - [ ] M6 — Play listing · Data Safety · اختبار أجهزة
 - [ ] M7 — إطلاق مغلق (12 مختبِراً × 14 يوماً)
 
