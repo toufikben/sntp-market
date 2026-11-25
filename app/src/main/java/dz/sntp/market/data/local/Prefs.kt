@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dz.sntp.market.data.model.Entitlement
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -38,6 +39,10 @@ class Prefs(private val context: Context) {
         val LAST_NOTIFIED_DAY = stringPreferencesKey("last_notified_day")
         val LAST_NOTIFIED_STATUS = stringPreferencesKey("last_notified_status")
         val THEME_MODE = intPreferencesKey("theme_mode")
+        val TIER = stringPreferencesKey("entitlement_tier")
+        val TIER_SOURCE = stringPreferencesKey("entitlement_source")
+        val TIER_EXPIRES = longPreferencesKey("entitlement_expires")
+        val PROMO_ATTEMPTED = booleanPreferencesKey("promo_attempted")
     }
 
     // ---------------------------------------------------------------- theme
@@ -47,6 +52,32 @@ class Prefs(private val context: Context) {
 
     suspend fun setThemeMode(mode: Int) {
         context.dataStore.edit { it[K.THEME_MODE] = mode }
+    }
+
+    // --------------------------------------------------------- entitlement
+
+    suspend fun entitlement(): Entitlement {
+        val d = context.dataStore.data.first()
+        return Entitlement.fromServer(
+            tier = d[K.TIER],
+            source = d[K.TIER_SOURCE],
+            expiresAtMs = d[K.TIER_EXPIRES] ?: 0L,
+        )
+    }
+
+    suspend fun setEntitlement(e: Entitlement) {
+        context.dataStore.edit {
+            it[K.TIER] = e.tier.name.lowercase()
+            it[K.TIER_SOURCE] = e.source
+            it[K.TIER_EXPIRES] = e.expiresAtMs
+        }
+    }
+
+    suspend fun promoAttempted(): Boolean =
+        context.dataStore.data.map { it[K.PROMO_ATTEMPTED] ?: false }.first()
+
+    suspend fun setPromoAttempted() {
+        context.dataStore.edit { it[K.PROMO_ATTEMPTED] = true }
     }
 
     // ------------------------------------------------------------- identity

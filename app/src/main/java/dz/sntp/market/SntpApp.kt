@@ -2,6 +2,7 @@ package dz.sntp.market
 
 import android.app.Application
 import dz.sntp.market.data.local.Prefs
+import dz.sntp.market.data.repo.EntitlementRepository
 import dz.sntp.market.data.repo.MarketRepository
 import dz.sntp.market.data.repo.RepoConfig
 import dz.sntp.market.data.repo.VoteRepository
@@ -13,6 +14,8 @@ class SntpApp : Application() {
     lateinit var marketRepository: MarketRepository
         private set
     lateinit var voteRepository: VoteRepository
+        private set
+    lateinit var entitlements: EntitlementRepository
         private set
 
     override fun onCreate() {
@@ -29,6 +32,7 @@ class SntpApp : Application() {
             prefs = prefs,
         )
         voteRepository = VoteRepository(this, marketRepository, prefs)
+        entitlements = EntitlementRepository(prefs, marketRepository)
     }
 
     companion object {

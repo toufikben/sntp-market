@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dz.sntp.market.R
+import dz.sntp.market.data.model.Shop
 import dz.sntp.market.data.model.VoteMessage
 import dz.sntp.market.notify.Notifier
 import dz.sntp.market.notify.Scheduler
@@ -117,6 +118,8 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
 @Composable
 private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit) {
     val context = LocalContext.current
+    // Which shop number the user is unlocking right now (null = no dialog).
+    var adShop by remember { mutableStateOf<Shop?>(null) }
 
     Box(Modifier.fillMaxSize().background(SntpColors.Sand)) {
         Column(
@@ -133,10 +136,21 @@ private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit
                         ShopsSection(
                             shops = ui.shops,
                             isPro = ui.isPro,
-                            onUnlock = { /* rewarded slot — wired in M5 */ },
+                            unlocked = ui.unlockedShops,
+                            onUnlock = { adShop = it },
                         )
+                        if (!ui.isPro) {
+                            Spacer(Modifier.height(18.dp))
+                            SponsorSlot(sponsor = ui.sponsors.firstOrNull { it.slot == 1 })
+                        }
                     }
-                    3 -> ScrollTab { HistorySection(ui.history) }
+                    3 -> ScrollTab {
+                        HistorySection(ui.history)
+                        if (!ui.isPro) {
+                            Spacer(Modifier.height(18.dp))
+                            SponsorSlot(sponsor = ui.sponsors.firstOrNull { it.slot == 2 })
+                        }
+                    }
                     else -> ScrollTab {
                         SettingsSection(
                             notifyEnabled = ui.notifyEnabled,
@@ -145,11 +159,11 @@ private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit
                             recoveryCode = ui.recoveryCode,
                             reputation = ui.reputation,
                             versionName = ui.versionName,
-                            isPro = ui.isPro,
+                            tier = ui.tier,
                             onNotifyToggle = vm::setNotifications,
                             onThemeMode = vm::setThemeMode,
                             onOpenBattery = { openBatterySettings(context) },
-                            onUpgrade = { },
+                            onUpgrade = { vm.setShowUpgrade(true) },
                         )
                     }
                 }
@@ -164,6 +178,26 @@ private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 96.dp, start = 20.dp, end = 20.dp),
+            )
+        }
+
+        UpgradeSheet(
+            visible = ui.showUpgrade,
+            billingReady = ui.billingReady,
+            tier = ui.tier,
+            onDismiss = { vm.setShowUpgrade(false) },
+            onBuy = { sku -> vm.buy(context as? android.app.Activity, sku) },
+        )
+
+        adShop?.let { shop ->
+            RewardedDialog(
+                shop = shop,
+                sponsor = ui.sponsors.firstOrNull { it.slot == 3 },
+                onContinue = {
+                    vm.unlockShop(shop.id)
+                    adShop = null
+                },
+                onDismiss = { adShop = null },
             )
         }
     }

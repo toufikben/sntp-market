@@ -104,6 +104,27 @@
     <string name="settings_plan_boutique">Offre : Boutique</string>
     <string name="settings_upgrade">Améliorer</string>
 
+    <string name="upgrade_title">Passer à Pro</string>
+    <string name="upgrade_promo">Les 500 premiers utilisateurs obtiennent Pro à vie, gratuitement.</string>
+    <string name="upgrade_free_note">L\'offre gratuite couvre l\'état du jour, l\'horaire et l\'historique.</string>
+    <string name="plan_pro_monthly">Pro mensuel</string>
+    <string name="plan_pro_yearly">Pro annuel</string>
+    <string name="plan_boutique_monthly">Boutique mensuel</string>
+    <string name="plan_pro_monthly_price">1 000 DZD / mois</string>
+    <string name="plan_pro_yearly_price">9 000 DZD / an</string>
+    <string name="plan_boutique_price">2 500 DZD / mois</string>
+    <string name="plan_pro_features">Sans pub · numéros des boutiques · notifications</string>
+    <string name="plan_boutique_features">Tout Pro · page vérifiée · « ouvert maintenant »</string>
+    <string name="upgrade_buy">S\'abonner</string>
+    <string name="upgrade_unavailable">Le paiement Google Play n\'est pas encore activé pour cette version.</string>
+    <string name="ad_label">Sponsorisé</string>
+    <string name="ad_placeholder_title">Espace publicitaire</string>
+    <string name="ad_placeholder_body">Annoncez votre boutique aux commerçants du marché SNTP.</string>
+    <string name="ad_rewarded_title">Sponsor de cet espace</string>
+    <string name="ad_rewarded_body">Afficher la carte du sponsor révèle le numéro. Gratuit pour les abonnés Pro.</string>
+    <string name="ad_continue">Continuer</string>
+    <string name="ad_sponsor_contact">Appeler</string>
+
     <string name="ok">OK</string>
     <string name="cancel">Annuler</string>
     <string name="retry">Réessayer</string>

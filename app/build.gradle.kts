@@ -117,6 +117,7 @@ dependencies {
 
     implementation(libs.play.services.location)
     implementation(libs.play.services.integrity)
+    implementation(libs.android.billing)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

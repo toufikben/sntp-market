@@ -43,7 +43,12 @@ import dz.sntp.market.ui.theme.SntpColors
  * something instead of three ads where they do not.
  */
 @Composable
-fun ShopsSection(shops: List<Shop>, isPro: Boolean, onUnlock: (Shop) -> Unit) {
+fun ShopsSection(
+    shops: List<Shop>,
+    isPro: Boolean,
+    unlocked: Set<String>,
+    onUnlock: (Shop) -> Unit,
+) {
     var query by remember { mutableStateOf("") }
     val filtered = remember(query, shops) {
         if (query.isBlank()) shops
@@ -88,14 +93,19 @@ fun ShopsSection(shops: List<Shop>, isPro: Boolean, onUnlock: (Shop) -> Unit) {
 
     Column {
         filtered.forEach { shop ->
-            ShopRow(shop = shop, isPro = isPro, onUnlock = { onUnlock(shop) })
+            ShopRow(
+                shop = shop,
+                isPro = isPro,
+                unlocked = unlocked.contains(shop.id),
+                onUnlock = { onUnlock(shop) },
+            )
             HorizontalDivider(color = SntpColors.Divider.copy(alpha = 0.5f))
         }
     }
 }
 
 @Composable
-private fun ShopRow(shop: Shop, isPro: Boolean, onUnlock: () -> Unit) {
+private fun ShopRow(shop: Shop, isPro: Boolean, unlocked: Boolean, onUnlock: () -> Unit) {
     val uri = LocalUriHandler.current
     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -143,7 +153,7 @@ private fun ShopRow(shop: Shop, isPro: Boolean, onUnlock: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = SntpColors.TextSecondary,
                 )
-            } else if (isPro) {
+            } else if (isPro || unlocked) {
                 TextButton(onClick = {
                     runCatching { uri.openUri("tel:${shop.phone}") }
                 }) { Text(stringResource(R.string.shop_call), color = SntpColors.DeepGreen) }

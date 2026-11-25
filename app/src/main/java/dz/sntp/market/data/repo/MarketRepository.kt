@@ -10,6 +10,7 @@ import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Shop
 import dz.sntp.market.data.model.ShopDto
 import dz.sntp.market.data.model.Source
+import dz.sntp.market.data.model.Sponsor
 import dz.sntp.market.data.remote.SupabaseClient
 import dz.sntp.market.data.seed.SntpSeed
 import dz.sntp.market.util.MarketTime
@@ -203,6 +204,29 @@ class MarketRepository(
 
     suspend fun postReport(payload: String): Result<String> = withContext(Dispatchers.IO) {
         client.post("reports", payload)
+    }
+
+    /** PostgREST RPC, used by the entitlement functions. */
+    suspend fun rpc(name: String, bodyJson: String): Result<String> = withContext(Dispatchers.IO) {
+        client.post("rpc/$name", bodyJson)
+    }
+
+    // -------------------------------------------------------------- sponsors
+
+    /** Paid placements, already filtered by RLS to active and unexpired. */
+    suspend fun loadSponsors(): List<Sponsor> = withContext(Dispatchers.IO) {
+        if (!isConfigured) return@withContext emptyList()
+        val body = runCatching {
+            client.get(
+                "sponsors?select=id,slot,name,phone,url&order=slot.asc"
+            ).getOrNull()
+        }.getOrNull() ?: return@withContext emptyList()
+
+        runCatching {
+            json.decodeFromString(
+                kotlinx.serialization.builtins.ListSerializer(Sponsor.serializer()), body
+            )
+        }.getOrDefault(emptyList())
     }
 
     private fun isOnline(): Boolean = runCatching {

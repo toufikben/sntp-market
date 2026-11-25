@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dz.sntp.market.R
+import dz.sntp.market.data.model.Tier
 import dz.sntp.market.ui.theme.SntpColors
 
 @Composable
@@ -37,7 +38,7 @@ fun SettingsSection(
     recoveryCode: String,
     reputation: Int,
     versionName: String,
-    isPro: Boolean,
+    tier: Tier,
     onNotifyToggle: (Boolean) -> Unit,
     onThemeMode: (Int) -> Unit,
     onOpenBattery: () -> Unit,
@@ -140,13 +141,16 @@ fun SettingsSection(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = if (isPro) stringResource(R.string.settings_plan_pro)
-            else stringResource(R.string.settings_plan_free),
+            text = when (tier) {
+                Tier.FREE -> stringResource(R.string.settings_plan_free)
+                Tier.PRO -> stringResource(R.string.settings_plan_pro)
+                Tier.BOUTIQUE -> stringResource(R.string.settings_plan_boutique)
+            },
             style = MaterialTheme.typography.bodyLarge,
             color = SntpColors.TextPrimary,
             modifier = Modifier.weight(1f),
         )
-        if (!isPro) {
+        if (tier == Tier.FREE) {
             TextButton(onClick = onUpgrade) {
                 Text(
                     stringResource(R.string.settings_upgrade),
