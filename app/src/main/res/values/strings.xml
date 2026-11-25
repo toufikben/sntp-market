@@ -97,6 +97,7 @@
     <string name="settings_recovery">كود استرجاع السمعة</string>
     <string name="settings_recovery_desc">احفظه لاستعادة وزنك عند تغيير الهاتف</string>
     <string name="settings_reputation">موثوقيتك</string>
+    <string name="settings_reputation_value">موثوقيتك: %1$s</string>
     <string name="settings_about">حول التطبيق</string>
     <string name="settings_disclaimer">معلومات غير رسمية يجمعها التجار. تحقّق قبل التنقل.</string>
     <string name="settings_privacy">سياسة الخصوصية</string>

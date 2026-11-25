@@ -38,6 +38,16 @@ android {
     }
 
     signingConfigs {
+        // A checked-in debug key, so every CI run signs the same way. Without it
+        // each runner generates a fresh key and "adb install -r" fails with
+        // INSTALL_FAILED_UPDATE_INCOMPATIBLE. Debug keys are not secrets.
+        create("debugFixed") {
+            storeFile = rootProject.file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+
         if (keystoreProperties.getProperty("storeFile") != null) {
             create("release") {
                 storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
@@ -52,6 +62,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            signingConfig = signingConfigs.findByName("debugFixed")
         }
         release {
             isMinifyEnabled = true

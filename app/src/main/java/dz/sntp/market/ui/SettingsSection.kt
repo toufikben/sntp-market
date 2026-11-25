@@ -106,7 +106,7 @@ fun SettingsSection(
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "${stringResource(R.string.settings_reputation)}: $reputation / 180",
+            text = stringResource(R.string.settings_reputation_value, isolate("$reputation / 180")),
             style = MaterialTheme.typography.labelSmall,
             color = SntpColors.TextSecondary,
         )
@@ -148,13 +148,20 @@ fun SettingsSection(
     )
     Spacer(Modifier.height(8.dp))
     Text(
-        text = stringResource(R.string.settings_version, versionName),
+        text = stringResource(R.string.settings_version, isolate(versionName)),
         style = MaterialTheme.typography.labelSmall,
         color = SntpColors.TextSecondary,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth(),
     )
 }
+
+/**
+ * Wraps a Latin run (a version number, a score) in Unicode isolates so the bidi
+ * algorithm keeps it in reading order inside an Arabic sentence. Without this
+ * "0.1.0-debug" renders as "debug-0.1.0" and "100 / 180" as "180 / 100".
+ */
+private fun isolate(value: String): String = "\u2066$value\u2069"
 
 @Composable
 private fun SettingRow(

@@ -89,6 +89,7 @@
     <string name="settings_open">Ouvrir</string>
     <string name="settings_recovery_desc">Conservez-le pour retrouver votre poids sur un autre téléphone</string>
     <string name="settings_reputation">Votre fiabilité</string>
+    <string name="settings_reputation_value">Votre fiabilité : %1$s</string>
     <string name="settings_about">À propos</string>
     <string name="settings_disclaimer">Informations non officielles, collectées par les commerçants. Vérifiez avant de vous déplacer.</string>
     <string name="settings_privacy">Confidentialité</string>

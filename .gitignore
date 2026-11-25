@@ -1,4 +1,4 @@
-*.iml
+﻿*.iml
 .gradle
 /local.properties
 /.idea
@@ -9,7 +9,6 @@ build/
 .cxx
 local.properties
 *.jks
-*.keystore
 keystore.properties
 secrets.properties
 /.kotlin
@@ -18,3 +17,4 @@ secrets.properties
 
 /dist/
 /evidence/
+
