@@ -111,13 +111,15 @@ private fun primaryTimeLine(s: MarketState): String? = when (s.status) {
     MarketStatus.OPEN -> s.closesAtLocal?.let { stringResource(R.string.closes_at, it) }
     MarketStatus.CLOSED -> s.opensAtLocal?.let { stringResource(R.string.opens_at, it) }
     // Nothing is confirmed, so the honest line is the usual window, labelled as usual.
+    // The pair is an LTR run inside an Arabic sentence: without the isolate the dash
+    // and the two times land in the wrong order, on the one line the product is read for.
     MarketStatus.UNKNOWN -> {
         val open = s.opensAtLocal
         val close = s.closesAtLocal
         if (open != null && close != null) {
-            stringResource(R.string.usual_hours, open, close)
+            stringResource(R.string.usual_hours, "\u2066$open\u2069", "\u2066$close\u2069")
         } else if (open != null) {
-            stringResource(R.string.opens_at, open)
+            stringResource(R.string.opens_at, "\u2066$open\u2069")
         } else {
             null
         }
