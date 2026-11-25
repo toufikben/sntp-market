@@ -42,6 +42,7 @@ fun SettingsSection(
     onNotifyToggle: (Boolean) -> Unit,
     onThemeMode: (Int) -> Unit,
     onOpenBattery: () -> Unit,
+    onPrivacy: () -> Unit,
     onUpgrade: () -> Unit,
 ) {
     Text(
@@ -94,6 +95,17 @@ fun SettingsSection(
         subtitle = stringResource(R.string.settings_battery_desc),
     ) {
         TextButton(onClick = onOpenBattery) {
+            Text(stringResource(R.string.settings_open), color = SntpColors.DeepGreen, fontWeight = FontWeight.Bold)
+        }
+    }
+
+    HorizontalDivider(color = SntpColors.Divider, modifier = Modifier.padding(vertical = 4.dp))
+
+    SettingRow(
+        title = stringResource(R.string.settings_privacy),
+        subtitle = stringResource(R.string.settings_privacy_desc),
+    ) {
+        TextButton(onClick = onPrivacy) {
             Text(stringResource(R.string.settings_open), color = SntpColors.DeepGreen, fontWeight = FontWeight.Bold)
         }
     }

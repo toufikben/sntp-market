@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سياسة الخصوصية — SNTP سوق سانتيبي</title>
+<style>
+  :root { --bg:#f6f1e7; --ink:#1a1a1a; --muted:#5a5a5a; --green:#0f3d3e; --line:#dcd3c4; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.7 system-ui, "Segoe UI", Tahoma, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { color: var(--green); font-size: 30px; margin: 0 0 6px; }
+  h2 { color: var(--green); font-size: 21px; margin: 28px 0 8px; }
+  p, li { color: var(--ink); }
+  .muted { color: var(--muted); font-size: 14px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin:16px 0; }
+  a { color: #0b5f61; }
+  hr { border:0; border-top:1px solid var(--line); margin:36px 0; }
+  [dir="ltr"] { text-align:left; }
+</style>
+</head>
+<body>
+<main>
+  <h1>سياسة الخصوصية</h1>
+  <p class="muted">تطبيق SNTP · سوق سانتيبي — آخر تحديث: 25 نوفمبر 2026</p>
+
+  <div class="card">
+    <strong>الخلاصة:</strong> لا حساب، لا اسم، لا بريد، لا جهات اتصال. التطبيق يجمع
+    موقعك فقط لحظة التصويت ليتحقق أنك قرب السوق، ويحفظ تصويتات مجهولة لمدة 30 يوماً.
+  </div>
+
+  <h2>1. ما نجمعه ولماذا</h2>
+  <ul>
+    <li><strong>الموقع التقريبي/الدقيق:</strong> عند الضغط على «مفتوح» أو «مغلق» فقط.
+      يُستخدم للتأكد أنك داخل نطاق السوق (1.2 كم) ولحساب وزن التصويت. لا نتتبّعك في
+      الخلفية ولا نجمع موقعك دون تصويت.</li>
+    <li><strong>معرّف جهاز عشوائي:</strong> سلسلة تُنشأ على جهازك عند أول تشغيل،
+      لتجنّب التصويت المكرر واستعادة خطتك. ليست معرّفاً حقيقياً للجهاز ولا مرتبطة باسمك.</li>
+    <li><strong>التصويت نفسه:</strong> الحالة (مفتوح/مغلق)، الوقت، سبب مختار، والمسافة
+      المحسوبة عن السوق.</li>
+    <li><strong>معلومات الشراء:</strong> عند تفعيل الاشتراكات، رمز الشراء من Google Play
+      وحالته. لا نرى بطاقتك ولا بيانات الدفع.</li>
+  </ul>
+  <p>لا نجمع: الاسم، البريد، رقم الهاتف، جهات الاتصال، الصور، الميكروفون، أو سجل التصفّح.
+     لا يوجد تتبّع إعلاني ولا بيع بيانات.</p>
+
+  <h2>2. أين تُحفظ</h2>
+  <p>على جهازك (إعدادات، ذاكرة مؤقتة للحالة) وعلى خادم Supabase في الاتحاد الأوروبي
+     (أيرلندا). الاتصال مشفّر HTTPS، والوصول إلى الجداول محكوم بسياسات RLS.</p>
+
+  <h2>3. مدة الحفظ</h2>
+  <ul>
+    <li>التصويتات الخام: تُحذف تلقائياً بعد <strong>30 يوماً</strong>.</li>
+    <li>سجل الحالة اليومي: يبقى مجهولاً (مفتوح/مغلق لكل يوم) لعرض التقويم.</li>
+    <li>الاستحقاقات: تبقى ما دام الاشتراك أو المنحة ساريين.</li>
+  </ul>
+
+  <h2>4. المشاركة</h2>
+  <p>لا نشارك بيانات مع معلنين أو وسطاء. مقدّمو الخدمة الوحيدون: Supabase (استضافة
+     قاعدة البيانات) وGoogle Play (الدفع، إن فُعّل). قد نكشف بيانات إذا ألزمنا القانون.</p>
+
+  <h2>5. حقوقك وحذف البيانات</h2>
+  <p>بما أن المعرّف عشوائي وغير مرتبط بهويتك، لا نستطيع البحث عنك بالاسم. لحذف
+     تصويتاتك واستحقاقك، أرسل معرّف الاستعادة الظاهر في «الإعدادات» عبر
+     <a href="https://github.com/toufikben/sntp-market/issues">صفحة الدعم</a>
+     وسنحذف الصفوف المرتبطة به خلال 30 يوماً. إلغاء تثبيت التطبيق يوقف أي جمع فوري.</p>
+
+  <h2>6. الأطفال</h2>
+  <p>التطبيق موجّه لتجار الجملة وليس للأطفال دون 13 عاماً، ولا نجمع بيانات عنهم عن قصد.</p>
+
+  <h2>7. الإعلانات والرعاية</h2>
+  <p>لا يوجد SDK إعلانات ولا تتبّع. بطاقات «رعاية» محتوى مباشر من السوق، تُعرض دون
+     جمع أي بيانات عنك.</p>
+
+  <h2>8. تنويه</h2>
+  <p>التطبيق مبادرة مستقلة. المعلومات غير رسمية ويجمعها التجار، ولا يمثّل التطبيق إدارة
+     السوق أو أي جهة حكومية. تحقّق قبل التنقل.</p>
+
+  <h2>9. التواصل</h2>
+  <p><a href="https://github.com/toufikben/sntp-market/issues">github.com/toufikben/sntp-market/issues</a></p>
+
+  <hr>
+
+  <div dir="ltr" lang="fr">
+    <h1>Politique de confidentialité</h1>
+    <p class="muted">Application SNTP — marché de Santébi. Dernière mise à jour : 25 novembre 2026.</p>
+
+    <div class="card">
+      <strong>En bref :</strong> aucun compte, aucun nom, aucun e-mail, aucun contact.
+      La position n'est lue qu'au moment d'un vote, pour vérifier la proximité du marché.
+      Les votes anonymes sont supprimés après 30 jours.
+    </div>
+
+    <h2>1. Données collectées</h2>
+    <ul>
+      <li><strong>Position :</strong> uniquement lors d'un vote, pour vérifier le rayon de
+        1,2 km et pondérer le vote. Aucun suivi en arrière-plan.</li>
+      <li><strong>Identifiant d'appareil aléatoire :</strong> généré localement, pour éviter
+        les votes multiples et restaurer votre offre. Ce n'est pas un identifiant matériel.</li>
+      <li><strong>Le vote :</strong> état (ouvert/fermé), heure, motif et distance calculée.</li>
+      <li><strong>Achats :</strong> jeton d'achat Google Play et son état, si les abonnements
+        sont activés. Aucune donnée bancaire n'est visible.</li>
+    </ul>
+    <p>Nous ne collectons ni nom, ni e-mail, ni téléphone, ni contacts, ni photos, ni micro,
+       ni historique de navigation. Aucun traçage publicitaire, aucune revente.</p>
+
+    <h2>2. Hébergement</h2>
+    <p>Sur votre appareil et sur Supabase (Union européenne, Irlande), via HTTPS, avec des
+       politiques RLS sur les tables.</p>
+
+    <h2>3. Durée de conservation</h2>
+    <ul>
+      <li>Votes bruts : suppression automatique après <strong>30 jours</strong>.</li>
+      <li>Historique quotidien : conservé de façon anonyme (ouvert/fermé par jour).</li>
+      <li>Droits d'accès : conservés tant que l'abonnement ou le grant est actif.</li>
+    </ul>
+
+    <h2>4. Partage</h2>
+    <p>Aucun partage avec des annonceurs. Sous-traitants : Supabase (base de données) et
+       Google Play (paiement, si activé). Divulgation possible si la loi l'exige.</p>
+
+    <h2>5. Vos droits</h2>
+    <p>L'identifiant étant aléatoire et non lié à votre identité, nous ne pouvons pas vous
+       retrouver par nom. Pour supprimer vos votes et votre droit d'accès, envoyez le code
+       de récupération affiché dans « Réglages » via la
+       <a href="https://github.com/toufikben/sntp-market/issues">page de support</a> ;
+       suppression sous 30 jours. Désinstaller l'application arrête toute collecte.</p>
+
+    <h2>6. Enfants</h2>
+    <p>Application destinée aux commerçants, pas aux moins de 13 ans.</p>
+
+    <h2>7. Publicité et sponsoring</h2>
+    <p>Aucun SDK publicitaire, aucun traçage. Les cartes « sponsorisé » sont du contenu
+       direct du marché, sans collecte de données.</p>
+
+    <h2>8. Avertissement</h2>
+    <p>Initiative indépendante. Informations non officielles collectées par les commerçants ;
+       l'application ne représente ni la direction du marché ni une autorité publique.</p>
+
+    <h2>9. Contact</h2>
+    <p><a href="https://github.com/toufikben/sntp-market/issues">github.com/toufikben/sntp-market/issues</a></p>
+  </div>
+</main>
+</body>
+</html>

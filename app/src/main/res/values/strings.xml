@@ -106,6 +106,7 @@
     <string name="settings_about">حول التطبيق</string>
     <string name="settings_disclaimer">معلومات غير رسمية يجمعها التجار. تحقّق قبل التنقل.</string>
     <string name="settings_privacy">سياسة الخصوصية</string>
+    <string name="settings_privacy_desc">ما نجمعه، ولماذا، وكيف تحذفه</string>
     <string name="settings_version">الإصدار %1$s</string>
     <string name="settings_plan_free">الخطة: مجاني</string>
     <string name="settings_plan_pro">الخطة: Pro</string>

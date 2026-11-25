@@ -52,6 +52,8 @@ import dz.sntp.market.ui.theme.SntpColors
 import dz.sntp.market.ui.theme.SntpTheme
 import kotlinx.coroutines.delay
 
+private const val PRIVACY_URL = "https://toufikben.github.io/sntp-market/privacy.html"
+
 @Composable
 fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -163,6 +165,7 @@ private fun MainContent(ui: UiState, vm: MainViewModel, onVote: (String) -> Unit
                             onNotifyToggle = vm::setNotifications,
                             onThemeMode = vm::setThemeMode,
                             onOpenBattery = { openBatterySettings(context) },
+                            onPrivacy = { openUrl(context, PRIVACY_URL) },
                             onUpgrade = { vm.setShowUpgrade(true) },
                         )
                     }
@@ -334,6 +337,15 @@ private fun ToastBanner(message: VoteMessage, onDismiss: () -> Unit, modifier: M
             text = stringResource(textRes),
             style = MaterialTheme.typography.bodyMedium,
             color = SntpColors.TextOnDark,
+        )
+    }
+}
+
+private fun openUrl(context: android.content.Context, url: String) {
+    runCatching {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
     }
 }

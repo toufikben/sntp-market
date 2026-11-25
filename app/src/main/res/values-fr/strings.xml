@@ -98,6 +98,7 @@
     <string name="settings_about">À propos</string>
     <string name="settings_disclaimer">Informations non officielles, collectées par les commerçants. Vérifiez avant de vous déplacer.</string>
     <string name="settings_privacy">Confidentialité</string>
+    <string name="settings_privacy_desc">Ce que nous collectons, pourquoi, et comment l\'effacer</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_plan_free">Offre : gratuite</string>
     <string name="settings_plan_pro">Offre : Pro</string>

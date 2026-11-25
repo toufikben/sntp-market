@@ -118,6 +118,24 @@ insert into public.sponsors (slot, name, phone, url, ends_at) values
 
 ---
 
+## 7. صفحة الخصوصية (مطلوبة في Play)
+
+الصفحة جاهزة في `docs/privacy.html` (عربي + فرنسي). لتصبح رابطاً عاماً:
+
+1. Repo → **Settings → Pages**.
+2. Source: **Deploy from a branch** → Branch: `main` → Folder: `/docs` → Save.
+3. بعد دقيقة يصبح الرابط:
+   `https://toufikben.github.io/sntp-market/privacy.html`
+4. نفس الرابط مسجّل داخل التطبيق (الإعدادات → سياسة الخصوصية). إن غيّرت اسم
+   المستودع أو المستخدم، حدّث `PRIVACY_URL` في `MainScreen.kt`.
+
+في Play Console → **App content → Privacy policy** ضع الرابط نفسه. وفي
+**Data safety** أجب: الموقع (تقريبي/دقيق) يُجمع عند التصويت فقط، ويُشارَك مع
+مزوّد الاستضافة، ويُحذف بعد 30 يوماً؛ معرّفات الجهاز تُجمع؛ لا بيانات مالية
+تُجمع مباشرة (Play يتولى الدفع).
+
+---
+
 ## 6. قبل الإطلاق
 
 - [ ] `schema.sql` يعمل على مشروع جديد ويُرجع البيانات المتوقعة
