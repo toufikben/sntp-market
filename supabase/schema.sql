@@ -308,6 +308,61 @@ language sql immutable as $$
     ));
 $$;
 
+-- -----------------------------------------------------------------------------
+--  لقطة اليوم
+--
+--  آخر حساب للسوق ليس بالضرورة ما حدث اليوم. تصويت «مفتوح» الساعة الثامنة
+--  تنتهي صلاحيته بعد ثلاث ساعات، فيصير الحساب «غير مؤكد» ظهراً — ولو كتبنا
+--  ذلك في السجل لمحونا الحقيقة التي رآها التجار صباحاً. لذلك:
+--    · لا يُكتب في السجل إلا ما تأكّد فعلاً (مفتوح/مغلق).
+--    · «غير مؤكد» يُكتب فقط إذا لم يكن لليوم أي صف بعد.
+--    · تجاوز الإدارة يُسجّل أيضاً، وكان يُهمَل سابقاً لأنه يعود قبل اللقطة.
+--
+--  تُعرَّف قبل recompute_market_state لأن plpgsql يتحقق من وجود الدوال
+--  المستدعاة عند الإنشاء (check_function_bodies).
+-- -----------------------------------------------------------------------------
+create or replace function public.snapshot_day(
+    p_slug   text,
+    p_status text,
+    p_opens  text,
+    p_closes text,
+    p_conf   double precision,
+    p_source text
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    m public.markets%rowtype;
+    d date;
+begin
+    select * into m from public.markets where slug = p_slug;
+    if not found then return; end if;
+
+    d := (now() at time zone m.timezone)::date;
+
+    if p_status in ('open','closed') then
+        insert into public.state_history
+            (market_slug, day, status, opens_at, closes_at, confidence, source)
+        values (p_slug, d, p_status, p_opens, p_closes, round(p_conf::numeric, 3), p_source)
+        on conflict (market_slug, day) do update set
+            status     = excluded.status,
+            opens_at   = excluded.opens_at,
+            closes_at  = excluded.closes_at,
+            confidence = greatest(public.state_history.confidence, excluded.confidence),
+            source     = excluded.source,
+            updated_at = now();
+    else
+        insert into public.state_history (market_slug, day, status, confidence, source)
+        values (p_slug, d, 'unknown', 0, p_source)
+        on conflict (market_slug, day) do nothing;
+    end if;
+end;
+$$;
+
+revoke all on function public.snapshot_day(text, text, text, text, double precision, text) from public;
+
 -- إعادة حساب حالة سوق واحد. تُستدعى من cron ومن الـ trigger.
 create or replace function public.recompute_market_state(p_slug text)
 returns void
@@ -326,7 +381,6 @@ declare
     v_status     text := 'unknown';
     v_opens      text := null;
     v_closes     text := null;
-    v_source     text := 'traders';
 begin
     select * into m from public.markets where slug = p_slug and active;
     if not found then return; end if;
@@ -347,10 +401,18 @@ begin
             source = 'admin',
             updated_at = now()
         where market_slug = p_slug;
+
+        -- An official closure is the most important row in the history; it used
+        -- to be lost because this branch returned before writing it.
+        perform public.snapshot_day(p_slug, ov.status, ov.opens_at, ov.closes_at, 1.0, 'admin');
         return;
     end if;
 
     -- 2) التصويتات: أحدث تصويت لكل جهاز داخل آخر 3 ساعات
+    --
+    --  الوثائق تقول إن الوزن = القرب × السمعة × الحداثة، لكن الحداثة كانت
+    --  تُحسب صفراً عند الإدخال ثم تُهمَل هنا، فتصويت عمره ساعتان ونصف كان
+    --  يزن مثل تصويت عمره دقيقة. تُطبَّق هنا على وزن التصويت المخزّن.
     with latest as (
         select distinct on (device_id)
             device_id, status, opens_at, closes_at,
@@ -360,14 +422,24 @@ begin
           and counted
           and server_time > now() - interval '3 hours'
         order by device_id, server_time desc
+    ), aged as (
+        select
+            status, opens_at, closes_at,
+            coalesce(weight, 0) * (case
+                when extract(epoch from (now() - server_time)) / 60.0 <= 45  then 1.0
+                when extract(epoch from (now() - server_time)) / 60.0 <= 90  then 0.7
+                when extract(epoch from (now() - server_time)) / 60.0 <= 180 then 0.4
+                else 0.0
+            end) as w
+        from latest
     )
     select
-        coalesce(sum(case when status = 'open'   then weight else 0 end), 0),
-        coalesce(sum(case when status = 'closed' then weight else 0 end), 0),
-        coalesce(sum(weight), 0),
-        count(*) filter (where weight > 0)
+        coalesce(sum(case when status = 'open'   then w else 0 end), 0),
+        coalesce(sum(case when status = 'closed' then w else 0 end), 0),
+        coalesce(sum(w), 0),
+        count(*) filter (where w > 0)
     into v_open_w, v_closed_w, v_total_w, v_devices
-    from latest;
+    from aged;
 
     if v_total_w > 0 then
         -- الفائز يجب أن يحقق 60% من الوزن
@@ -413,18 +485,7 @@ begin
         updated_at      = now()
     where market_slug = p_slug;
 
-    -- 3) لقطة يومية للسجل
-    insert into public.state_history (market_slug, day, status, opens_at, closes_at, confidence, source)
-    values (p_slug, (now() at time zone m.timezone)::date, v_status, v_opens, v_closes, round(v_conf::numeric,3), 'traders')
-    on conflict (market_slug, day) do update set
-        status = excluded.status,
-        opens_at = excluded.opens_at,
-        closes_at = excluded.closes_at,
-        confidence = excluded.confidence,
-        source = excluded.source,
-        updated_at = now()
-    where public.state_history.status <> excluded.status
-       or public.state_history.opens_at is distinct from excluded.opens_at;
+    perform public.snapshot_day(p_slug, v_status, v_opens, v_closes, v_conf, 'traders');
 end;
 $$;
 

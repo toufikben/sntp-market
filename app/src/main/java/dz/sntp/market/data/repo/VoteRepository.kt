@@ -14,6 +14,7 @@ import dz.sntp.market.data.model.Proximity
 import dz.sntp.market.data.model.ReportDto
 import dz.sntp.market.data.model.VoteMessage
 import dz.sntp.market.data.model.VoteOutcome
+import dz.sntp.market.data.remote.ApiException
 import dz.sntp.market.data.seed.SntpSeed
 import dz.sntp.market.util.Geo
 import dz.sntp.market.util.MarketTime
@@ -109,21 +110,45 @@ class VoteRepository(
             prefs.setLastVoteDay(MarketTime.isoDay())
             VoteOutcome(true, false, VoteMessage.SENT)
         } else {
-            // Never lose the trader's observation: it goes out on reconnect.
-            PendingVotes.enqueue(context, payload)
-            // Count the attempt locally too, so the button cannot be farmed offline.
-            prefs.setLastVoteAt(nowMs)
-            VoteOutcome(true, true, VoteMessage.QUEUED)
+            val error = result.exceptionOrNull() as? ApiException
+            val permanent = error?.isPermanent == true
+
+            if (permanent) {
+                // The server refused this vote for a reason retrying cannot fix
+                // (rate limited, device blocked, market unknown). Queuing it would
+                // promise the trader something that never happens.
+                prefs.setLastVoteAt(nowMs)
+                val message = when {
+                    error?.mentions("rate limited") == true -> VoteMessage.RATE_LIMITED
+                    else -> VoteMessage.FAILED
+                }
+                VoteOutcome(false, false, message)
+            } else {
+                // Never lose the trader's observation: it goes out on reconnect.
+                PendingVotes.enqueue(context, payload)
+                // Count the attempt locally too, so the button cannot be farmed offline.
+                prefs.setLastVoteAt(nowMs)
+                VoteOutcome(true, true, VoteMessage.QUEUED)
+            }
         }
     }
 
-    /** Sends everything that was recorded while the network was down. Server rejects old ones. */
+    /**
+     * Sends everything recorded while the network was down. Items the server
+     * rejects for good (stale, duplicate, blocked) are dropped rather than
+     * requeued; only transport failures are retried.
+     */
     suspend fun flushPending(): Int = withContext(Dispatchers.IO) {
         val items = PendingVotes.drain(context)
         var sent = 0
         for (item in items) {
             val res = marketRepository.postReport(item)
-            if (res.isSuccess) sent++ else PendingVotes.enqueue(context, item)
+            if (res.isSuccess) {
+                sent++
+            } else {
+                val permanent = (res.exceptionOrNull() as? ApiException)?.isPermanent == true
+                if (!permanent) PendingVotes.enqueue(context, item)
+            }
         }
         sent
     }

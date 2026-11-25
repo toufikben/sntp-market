@@ -1,6 +1,5 @@
 package dz.sntp.market.data.remote
 
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -40,7 +39,7 @@ class SupabaseClient(
             .build()
         http.newCall(req).execute().use { resp ->
             val body = resp.body?.string().orEmpty()
-            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: ${body.take(200)}")
+            if (!resp.isSuccessful) throw ApiException(resp.code, body)
             body
         }
     }
@@ -56,7 +55,7 @@ class SupabaseClient(
             .build()
         http.newCall(req).execute().use { resp ->
             val body = resp.body?.string().orEmpty()
-            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: ${body.take(200)}")
+            if (!resp.isSuccessful) throw ApiException(resp.code, body)
             body
         }
     }
@@ -72,7 +71,7 @@ class SupabaseClient(
             .build()
         http.newCall(req).execute().use { resp ->
             val body = resp.body?.string().orEmpty()
-            if (!resp.isSuccessful) throw IOException("signup HTTP ${resp.code}")
+            if (!resp.isSuccessful) throw ApiException(resp.code, "signup failed")
             body
         }
     }
