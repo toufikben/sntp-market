@@ -20,6 +20,8 @@ import dz.sntp.market.util.Geo
 import dz.sntp.market.util.MarketTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -43,6 +45,9 @@ class VoteRepository(
 ) {
     private val json = Json { encodeDefaults = true; explicitNulls = false }
     private val fused by lazy { LocationServices.getFusedLocationProviderClient(context) }
+
+    /** One flush at a time: the screen and the morning worker both call it. */
+    private val flushMutex = Mutex()
 
     fun hasLocationPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
@@ -160,27 +165,54 @@ class VoteRepository(
      * Sends everything recorded while the network was down. Items the server
      * rejects for good (stale, duplicate, blocked) are dropped rather than
      * requeued; only transport failures are retried.
+     *
+     * Guarded by a mutex because two callers reach it — a screen refresh and the
+     * morning worker. Two flushes running together both read the same queue, both
+     * post it, and the second replace() writes back a list that no longer matches
+     * what was sent: the same vote goes twice (and is rejected as a repeat) while
+     * a vote added mid-flush is overwritten and lost for good.
      */
-    suspend fun flushPending(): Int = withContext(Dispatchers.IO) {
-        val items = PendingVotes.drain(context)
-        if (items.isEmpty()) return@withContext 0
+    suspend fun flushPending(): Int = flushMutex.withLock {
+        withContext(Dispatchers.IO) {
+            val items = PendingVotes.drain(context)
+            if (items.isEmpty()) return@withContext 0
 
-        var sent = 0
-        // The queue is rebuilt as we go and only removed once it is empty: the
-        // votes inside the market were typed where there is no signal, so losing
-        // them to a killed process is not recoverable for the trader.
-        val remaining = mutableListOf<String>()
-        for (item in items) {
-            val res = marketRepository.postReport(item)
-            if (res.isSuccess) {
-                sent++
-            } else {
-                val permanent = (res.exceptionOrNull() as? ApiException)?.isPermanent == true
-                if (!permanent) remaining += item
+            var sent = 0
+            // The file is only read here, never truncated: the votes inside the
+            // market were typed where there is no signal, so losing them to a
+            // killed process is not recoverable for the trader.
+            val done = mutableListOf<String>()
+            for (item in items) {
+                val res = marketRepository.postReport(item)
+                if (res.isSuccess) {
+                    sent++
+                    done += item
+                } else if ((res.exceptionOrNull() as? ApiException)?.isPermanent == true) {
+                    // Stale, blocked, unknown market: retrying can never succeed, and
+                    // keeping it would leave the "waiting to send" counter stuck on a
+                    // vote that is never going anywhere.
+                    done += item
+                }
             }
+
+            // A vote can be appended to the file while this loop is posting (the
+            // worker runs on its own thread). Writing back the snapshot we drained
+            // would erase it. Re-read the file and remove only the payloads we are
+            // finished with, so anything added mid-flush survives, and so does
+            // everything not yet accepted.
+            val onDisk = PendingVotes.drain(context)
+            val toDrop = done.toMutableList()
+            val kept = onDisk.filterNot { payload ->
+                if (toDrop.contains(payload)) {
+                    toDrop.remove(payload)
+                    true
+                } else {
+                    false
+                }
+            }
+            PendingVotes.replace(context, kept)
+            sent
         }
-        PendingVotes.replace(context, remaining)
-        sent
     }
 
     /**
