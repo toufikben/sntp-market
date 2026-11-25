@@ -91,15 +91,10 @@ fun UpgradeSheet(
                 onClick = { onBuy(BillingManager.SKU_PRO_YEARLY) },
             )
             HorizontalDivider(color = SntpColors.Divider)
-            PlanRow(
-                title = stringResource(R.string.plan_boutique_monthly),
-                price = prices[BillingManager.SKU_BOUTIQUE_MONTHLY]
-                    ?: stringResource(R.string.plan_boutique_price),
-                features = stringResource(R.string.plan_boutique_features),
-                active = tier == Tier.BOUTIQUE,
-                enabled = billingReady,
-                onClick = { onBuy(BillingManager.SKU_BOUTIQUE_MONTHLY) },
-            )
+            // The Boutique plan is deliberately not offered: nothing in the app
+            // implements a verified shop page or a live "open now" badge, so
+            // charging 2500 DZD for it would sell features that do not exist.
+            // The SKU and Tier stay in the model for when they are built.
 
             Spacer(Modifier.height(14.dp))
             Text(

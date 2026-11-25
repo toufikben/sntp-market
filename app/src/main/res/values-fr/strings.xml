@@ -113,7 +113,7 @@
     <string name="plan_pro_monthly_price">1 000 DZD / mois</string>
     <string name="plan_pro_yearly_price">9 000 DZD / an</string>
     <string name="plan_boutique_price">2 500 DZD / mois</string>
-    <string name="plan_pro_features">Sans pub · numéros des boutiques · notifications</string>
+    <string name="plan_pro_features">Sans sponsoring · numéros des boutiques · WhatsApp direct</string>
     <string name="plan_boutique_features">Tout Pro · page vérifiée · « ouvert maintenant »</string>
     <string name="upgrade_buy">S\'abonner</string>
     <string name="upgrade_unavailable">Le paiement Google Play n\'est pas encore activé pour cette version.</string>

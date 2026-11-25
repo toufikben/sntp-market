@@ -122,7 +122,7 @@
     <string name="plan_pro_monthly_price">1000 دج / شهر</string>
     <string name="plan_pro_yearly_price">9000 دج / سنة</string>
     <string name="plan_boutique_price">2500 دج / شهر</string>
-    <string name="plan_pro_features">بلا إعلانات · أرقام المحلات · إشعارات</string>
+    <string name="plan_pro_features">بلا رعاية · أرقام المحلات · واتساب مباشر</string>
     <string name="plan_boutique_features">كل مزايا Pro · صفحة موثّقة · «مفتوح الآن»</string>
     <string name="upgrade_buy">اشتراك</string>
     <string name="upgrade_unavailable">الدفع عبر Google Play لم يُفعّل لهذا الإصدار بعد.</string>
