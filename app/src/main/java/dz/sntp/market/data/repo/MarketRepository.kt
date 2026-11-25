@@ -54,10 +54,22 @@ class MarketRepository(
     suspend fun loadState(): MarketState = withContext(Dispatchers.IO) {
         val remote = fetchState()
         if (remote != null) {
-            val domain = remote.toDomain(Freshness.LIVE, System.currentTimeMillis())
+            val now = System.currentTimeMillis()
+            // Reaching the server is not the same as the server knowing something
+            // recent. If cron stalled or nobody has voted since yesterday, the row
+            // is old and must carry the stale warning; marking it LIVE because the
+            // HTTP call succeeded is exactly the confident lie this app exists to
+            // avoid. The age comes from the server's own updated_at.
+            val ageMs = IsoTime.toEpochMs(remote.updatedAt).takeIf { it > 0 }?.let { now - it }
+            val freshness = if (ageMs != null && ageMs > freshWindowMs) {
+                Freshness.STALE
+            } else {
+                Freshness.LIVE
+            }
+            val domain = remote.toDomain(freshness, now)
             prefs.saveCachedState(
                 json.encodeToString(MarketStateDto.serializer(), remote),
-                System.currentTimeMillis(),
+                now,
             )
             return@withContext domain
         }
