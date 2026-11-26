@@ -232,6 +232,13 @@ class MainViewModel : ViewModel() {
         if (next.source == Source.SEED) return      // seed is a guess, never news
         if (next.status == MarketStatus.UNKNOWN) return
 
+        // Only a *live* answer is news. A state read from disk can be hours old —
+        // the whole point of the stale badge — so pushing "the market just opened"
+        // from it told a trader something that may have been true this morning and
+        // is not the change it claims to be. The morning notification is the one
+        // that may speak from cache, and it says so in its own subtext.
+        if (next.freshness != Freshness.LIVE) return
+
         val key = when (next.status) {
             MarketStatus.OPEN -> "open"
             MarketStatus.CLOSED -> "closed"
