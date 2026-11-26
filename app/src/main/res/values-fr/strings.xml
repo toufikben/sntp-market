@@ -84,6 +84,8 @@
 
     <string name="history_title">Historique des états</string>
     <string name="history_empty">Pas encore d\'historique</string>
+    <string name="history_offline">Historique indisponible — pas de connexion</string>
+    <string name="history_cached">Dernier historique enregistré sur ce téléphone</string>
     <string name="history_legend">Ouvert · Fermé · Non confirmé</string>
 
     <string name="settings_title">Réglages</string>

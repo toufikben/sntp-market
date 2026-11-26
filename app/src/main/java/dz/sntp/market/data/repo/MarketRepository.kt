@@ -235,21 +235,47 @@ class MarketRepository(
 
     // -------------------------------------------------------------- history
 
-    /** Day -> status map for the last ~120 days, for the calendar grid. */
-    suspend fun loadHistory(): Map<String, String> = withContext(Dispatchers.IO) {
+    /**
+     * Day -> status map for the last ~120 days, for the calendar grid.
+     *
+     * The second value says the map came from disk because the server could not be
+     * reached. Without it the screen cannot tell "this market has no record" from
+     * "I could not ask", and it printed "لا سجل بعد" over a record that existed.
+     */
+    suspend fun loadHistory(): Pair<Map<String, String>, Boolean> = withContext(Dispatchers.IO) {
         val since = MarketTime.today().minusDays(120).toString()
         val body = runCatching {
             client.get(
                 "state_history?market_slug=eq.${config.marketSlug}&day=gte.$since&select=day,status&order=day.desc"
             ).getOrNull()
-        }.getOrNull() ?: return@withContext emptyMap()
+        }.getOrNull()
 
-        runCatching {
-            val arr = json.decodeFromString(
-                kotlinx.serialization.builtins.ListSerializer(HistoryRow.serializer()), body
-            )
-            arr.associate { it.day to it.status }
-        }.getOrDefault(emptyMap())
+        val parsed = body?.let {
+            runCatching {
+                val arr = json.decodeFromString(
+                    kotlinx.serialization.builtins.ListSerializer(HistoryRow.serializer()), it
+                )
+                arr.associate { row -> row.day to row.status }
+            }.getOrNull()
+        }
+
+        if (parsed != null) {
+            prefs.saveCachedHistory(json.encodeToString(
+                kotlinx.serialization.builtins.ListSerializer(HistoryRow.serializer()),
+                parsed.map { HistoryRow(it.key, it.value) },
+            ))
+            return@withContext parsed to false
+        }
+
+        val cached = prefs.cachedHistory()?.let {
+            runCatching {
+                json.decodeFromString(
+                    kotlinx.serialization.builtins.ListSerializer(HistoryRow.serializer()), it
+                )
+            }.getOrNull()?.associate { row -> row.day to row.status }
+        }
+
+        (cached ?: emptyMap()) to (cached != null)
     }
 
     // --------------------------------------------------------------- reports

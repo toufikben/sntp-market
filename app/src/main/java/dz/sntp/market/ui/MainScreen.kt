@@ -328,7 +328,7 @@ private fun MainContent(
                         }
                     }
                     3 -> ScrollTab {
-                        HistorySection(ui.history)
+                        HistorySection(ui.history, ui.historyCached)
                         if (!ui.isPro) {
                             Spacer(Modifier.height(18.dp))
                             SponsorSlot(sponsor = ui.sponsors.firstOrNull { it.slot == 2 })

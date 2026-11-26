@@ -33,6 +33,8 @@ class Prefs(private val context: Context) {
         val CACHED_STATE_AT = longPreferencesKey("cached_state_at")
         val CACHED_WEEK = stringPreferencesKey("cached_week_json")
         val CACHED_SHOPS = stringPreferencesKey("cached_shops_json")
+        /** Last month grid read from the server; the calendar must not vanish offline. */
+        val CACHED_HISTORY = stringPreferencesKey("cached_history_json")
         val NOTIFY_ENABLED = booleanPreferencesKey("notify_enabled")
         val NOTIFY_HOUR = intPreferencesKey("notify_hour")
         val NOTIFY_MINUTE = intPreferencesKey("notify_minute")
@@ -191,6 +193,14 @@ class Prefs(private val context: Context) {
 
     suspend fun saveCachedShops(json: String) {
         context.dataStore.edit { it[K.CACHED_SHOPS] = json }
+    }
+
+    /** The last month grid the app managed to read, so the calendar survives a dead network. */
+    suspend fun cachedHistory(): String? =
+        context.dataStore.data.map { it[K.CACHED_HISTORY] }.first()
+
+    suspend fun saveCachedHistory(json: String) {
+        context.dataStore.edit { it[K.CACHED_HISTORY] = json }
     }
 
     // -------------------------------------------------------- notifications

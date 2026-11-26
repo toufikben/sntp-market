@@ -36,6 +36,8 @@ data class UiState(
     val shops: List<Shop> = emptyList(),
     val sponsors: List<Sponsor> = emptyList(),
     val history: Map<String, String> = emptyMap(),
+    /** True when [history] came from disk because the server could not be reached. */
+    val historyCached: Boolean = false,
     val pendingVotes: Int = 0,
     val voting: Boolean = false,
     val toast: VoteMessage? = null,
@@ -140,7 +142,7 @@ class MainViewModel : ViewModel() {
             val weekV = runCatching { week.await() }.getOrElse { _ui.value.week }
             val shopsV = runCatching { shops.await() }.getOrElse { _ui.value.shops }
             val sponsorsV = runCatching { sponsors.await() }.getOrElse { _ui.value.sponsors }
-            val historyV = runCatching { history.await() }.getOrElse { _ui.value.history }
+            val historyV = runCatching { history.await() }.getOrElse { _ui.value.history to false }
             val repV = runCatching { rep.await() }.getOrElse { _ui.value.reputation }
 
             // The spec asks for a notification when the state changes, not only at
@@ -158,7 +160,8 @@ class MainViewModel : ViewModel() {
                     week = weekV,
                     shops = shopsV,
                     sponsors = sponsorsV,
-                    history = historyV,
+                    history = historyV.first,
+                    historyCached = historyV.second,
                     pendingVotes = PendingVotes.count(app),
                     configured = repo.isConfigured,
                     reputation = repV,

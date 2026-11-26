@@ -91,6 +91,8 @@
     <!-- History -->
     <string name="history_title">سجل الحالات</string>
     <string name="history_empty">لا سجل بعد</string>
+    <string name="history_offline">تعذّر تحميل السجل — لا يوجد اتصال</string>
+    <string name="history_cached">آخر سجل محفوظ على هذا الهاتف</string>
     <string name="history_legend">مفتوح · مغلق · غير مؤكد</string>
 
     <!-- Settings -->

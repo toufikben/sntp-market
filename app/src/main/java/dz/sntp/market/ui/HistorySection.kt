@@ -34,7 +34,7 @@ import java.time.YearMonth
  * invented.
  */
 @Composable
-fun HistorySection(history: Map<String, String>) {
+fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
     val today = MarketTime.today()
     val month = YearMonth.from(today)
 
@@ -92,8 +92,22 @@ fun HistorySection(history: Map<String, String>) {
     Spacer(Modifier.height(16.dp))
     if (history.isEmpty()) {
         Text(
-            text = stringResource(R.string.history_empty),
+            // "No record yet" is a claim about the market. Offline, the truth is
+            // that the record exists and could not be fetched — saying the market
+            // has no history would be a different, false statement.
+            text = stringResource(
+                if (fromCache) R.string.history_offline else R.string.history_empty
+            ),
             style = MaterialTheme.typography.bodyMedium,
+            color = SntpColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    } else if (fromCache) {
+        // The grid is real but old: it is the last copy this phone managed to read.
+        Text(
+            text = stringResource(R.string.history_cached),
+            style = MaterialTheme.typography.labelSmall,
             color = SntpColors.TextSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
