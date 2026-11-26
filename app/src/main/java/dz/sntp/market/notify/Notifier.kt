@@ -86,10 +86,10 @@ object Notifier {
     private fun bodyOf(context: Context, state: MarketState): String = when (state.status) {
         MarketStatus.OPEN -> state.closesAtLocal
             ?.let { context.getString(R.string.notif_closes_at, it) }
-            ?: context.getString(R.string.trust_traders)
+            ?: ""
         MarketStatus.CLOSED -> state.opensAtLocal
             ?.let { context.getString(R.string.notif_opens_at, it) }
-            ?: context.getString(R.string.settings_disclaimer)
+            ?: ""
         MarketStatus.UNKNOWN -> context.getString(R.string.notif_no_confirmation)
     }
 

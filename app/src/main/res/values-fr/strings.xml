@@ -48,6 +48,7 @@
     <string name="vote_too_far">Vous êtes trop loin du marché</string>
     <string name="vote_already">Vous avez voté récemment. L\'état a changé ? Attendez la fin du délai.</string>
     <string name="vote_rate_limited">Attendez 20 minutes entre deux votes</string>
+    <string name="vote_failed">Votre vote n\'a pas été accepté. Réessayez plus tard.</string>
 
     <string name="trust_admin">Source : administration du marché</string>
     <string name="trust_traders">Source : vote des commerçants</string>

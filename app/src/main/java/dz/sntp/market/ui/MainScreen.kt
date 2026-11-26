@@ -502,7 +502,10 @@ private fun ToastBanner(message: VoteMessage, onDismiss: () -> Unit, modifier: M
         VoteMessage.TOO_FAR -> R.string.vote_too_far
         VoteMessage.ALREADY_VOTED -> R.string.vote_already
         VoteMessage.RATE_LIMITED -> R.string.vote_rate_limited
-        VoteMessage.FAILED -> R.string.retry
+        // "Retry" is what a button says, not what a failed vote says. A permanent
+        // refusal (device blocked, market unknown) was never queued, so inviting a
+        // retry promised an action that could not work.
+        VoteMessage.FAILED -> R.string.vote_failed
     }
     LaunchedEffect(message) {
         delay(4000)

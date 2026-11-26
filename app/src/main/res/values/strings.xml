@@ -51,6 +51,7 @@
     <string name="vote_too_far">أنت بعيد عن السوق، لا يمكن احتساب تصويتك</string>
     <string name="vote_already">صوّتت قبل قليل. تغيّرت الحالة؟ انتظر انتهاء المهلة.</string>
     <string name="vote_rate_limited">انتظر 20 دقيقة بين تصويتين</string>
+    <string name="vote_failed">تعذّر قبول تصويتك. حاول لاحقاً.</string>
 
     <!-- Trust -->
     <string name="trust_admin">المصدر: إدارة السوق</string>
