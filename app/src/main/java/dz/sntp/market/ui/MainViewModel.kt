@@ -67,9 +67,9 @@ class MainViewModel : ViewModel() {
     val ui: StateFlow<UiState> = _ui.asStateFlow()
 
     init {
-        billing.onPurchased = { sku ->
+        billing.onPurchased = { sku, token ->
             viewModelScope.launch {
-                val e = app.entitlements.grantFromPlay(sku)
+                val e = app.entitlements.grantFromPlay(sku, token)
                 _ui.update {
                     it.copy(tier = e.tier, isPro = e.isPro, showUpgrade = false)
                 }

@@ -32,18 +32,47 @@ data class Entitlement(
          * Play itself honours the paid period after a cancellation, so locally
          * expiring at the end of that period is correct rather than harsh: the
          * next launch calls restore(), and a live subscription renews the date.
+         *
+         * [previous] and [previousToken] are what make that true. restore() runs
+         * on every launch and replays the *same* purchase, so recomputing
+         * now + 32 days each time pushed the expiry forward forever: a cancelled
+         * subscriber who kept opening the app never expired, and the app granted
+         * a month of Pro on every launch. The same token means the same paid
+         * period, so the existing expiry stands; only a new token (a real
+         * renewal) moves it.
          */
-        fun fromSku(sku: String, now: Long = System.currentTimeMillis()): Entitlement {
+        fun fromSku(
+            sku: String,
+            now: Long = System.currentTimeMillis(),
+            previous: Entitlement? = null,
+            previousToken: String? = null,
+            token: String? = null,
+        ): Entitlement {
             val yearly = sku.contains("year", ignoreCase = true) ||
                 sku.contains("annual", ignoreCase = true)
+
+            val samePlayPeriod = previous != null &&
+                previous.source == "play" &&
+                previousToken != null &&
+                token != null &&
+                previousToken == token &&
+                previous.expiresAtMs > now
+
+            if (samePlayPeriod) {
+                return previous.copy(tier = tierFor(sku))
+            }
+
             // One day of grace: Play posts a renewal a little after the boundary.
             val days = if (yearly) 367 else 32
             return Entitlement(
-                tier = if (sku.startsWith("boutique")) Tier.BOUTIQUE else Tier.PRO,
+                tier = tierFor(sku),
                 source = "play",
                 expiresAtMs = now + days * DAY_MS,
             )
         }
+
+        private fun tierFor(sku: String): Tier =
+            if (sku.startsWith("boutique")) Tier.BOUTIQUE else Tier.PRO
 
         fun fromServer(tier: String?, source: String?, expiresAtMs: Long): Entitlement =
             Entitlement(

@@ -52,8 +52,13 @@ class BillingManager(private val context: Context) {
     private val _prices = MutableStateFlow<Map<String, String>>(emptyMap())
     val prices: StateFlow<Map<String, String>> = _prices.asStateFlow()
 
-    /** Called on the Play callback thread (main) with the purchased SKU. */
-    var onPurchased: ((String) -> Unit)? = null
+    /**
+     * Called on the Play callback thread (main) with the purchased SKU and its
+     * purchase token. The token is the only thing that tells a renewal (a new
+     * period, a new expiry) from a replay of a purchase we already have (the same
+     * period again, which must not extend anything).
+     */
+    var onPurchased: ((String, String) -> Unit)? = null
 
     private val listener = PurchasesUpdatedListener { result, purchases ->
         if (result.responseCode == BillingClient.BillingResponseCode.OK) {
@@ -112,8 +117,9 @@ class BillingManager(private val context: Context) {
             if (result.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync
             purchases
                 .firstOrNull { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                ?.products?.firstOrNull()
-                ?.let { onPurchased?.invoke(it) }
+                ?.let { p ->
+                    p.products.firstOrNull()?.let { sku -> onPurchased?.invoke(sku, p.purchaseToken) }
+                }
         }
     }
 
@@ -160,7 +166,9 @@ class BillingManager(private val context: Context) {
                 .build()
             client?.acknowledgePurchase(ack) { /* ignored: Play retries the callback */ }
         }
-        purchase.products.firstOrNull()?.let { onPurchased?.invoke(it) }
+        purchase.products.firstOrNull()?.let { sku ->
+            onPurchased?.invoke(sku, purchase.purchaseToken)
+        }
     }
 
     companion object {

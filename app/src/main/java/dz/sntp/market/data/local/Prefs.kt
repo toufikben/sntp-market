@@ -45,6 +45,8 @@ class Prefs(private val context: Context) {
         val TIER_EXPIRES = longPreferencesKey("entitlement_expires")
         val PROMO_ATTEMPTED = booleanPreferencesKey("promo_attempted")
         val NOTIFY_ASKED = booleanPreferencesKey("notify_asked")
+        /** The Play purchase token the stored entitlement came from. */
+        val PLAY_TOKEN = stringPreferencesKey("play_token")
     }
 
     // ---------------------------------------------------------------- theme
@@ -78,6 +80,18 @@ class Prefs(private val context: Context) {
     suspend fun promoAttempted(): Boolean =
         context.dataStore.data.map { it[K.PROMO_ATTEMPTED] ?: false }.first()
 
+    /**
+     * The Play token behind the stored entitlement. Kept separately from the tier
+     * because it is the only way to tell a real renewal from restore() replaying
+     * the purchase we already have.
+     */
+    suspend fun playToken(): String? = context.dataStore.data.first()[K.PLAY_TOKEN]
+
+    suspend fun setPlayToken(token: String?) {
+        context.dataStore.edit { d ->
+            if (token == null) d.remove(K.PLAY_TOKEN) else d[K.PLAY_TOKEN] = token
+        }
+    }
     suspend fun setPromoAttempted() {
         context.dataStore.edit { it[K.PROMO_ATTEMPTED] = true }
     }

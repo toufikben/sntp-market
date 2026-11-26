@@ -74,11 +74,19 @@ class EntitlementRepository(
     }
 
     /** A Play purchase is acknowledged by the client and stored immediately. */
-    suspend fun grantFromPlay(sku: String): Entitlement = withContext(Dispatchers.IO) {
-        val e = Entitlement.fromSku(sku)
-        prefs.setEntitlement(e)
-        e
-    }
+    suspend fun grantFromPlay(sku: String, token: String? = null): Entitlement =
+        withContext(Dispatchers.IO) {
+            val previous = prefs.entitlement()
+            val e = Entitlement.fromSku(
+                sku = sku,
+                previous = previous,
+                previousToken = prefs.playToken(),
+                token = token,
+            )
+            prefs.setEntitlement(e)
+            prefs.setPlayToken(token)
+            e
+        }
 
     private sealed interface Answer {
         data class Found(val e: Entitlement) : Answer

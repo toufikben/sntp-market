@@ -73,4 +73,69 @@ class EntitlementTest {
         assertFalse("a yearly plan must outlive two months", yearly.isExpired(inTwoMonths))
         assertTrue(yearly.isExpired(System.currentTimeMillis() + 400L * 24 * 60 * 60 * 1000L))
     }
+
+    /**
+     * restore() runs on every launch and replays the purchase already stored. The
+     * expiry must not move: otherwise a cancelled subscriber who keeps opening the
+     * app is granted a fresh month each time and never lapses.
+     */
+    @Test
+    fun `replaying the same purchase token does not extend the expiry`() {
+        val now = 1_000_000_000_000L
+        val first = Entitlement.fromSku("pro_monthly", now = now, token = "tok-A")
+
+        val later = now + 20L * 24 * 60 * 60 * 1000L
+        val replay = Entitlement.fromSku(
+            "pro_monthly",
+            now = later,
+            previous = first,
+            previousToken = "tok-A",
+            token = "tok-A",
+        )
+
+        assertEquals(first.expiresAtMs, replay.expiresAtMs)
+        // Twenty days later it must still expire when the first month ends.
+        assertTrue(replay.isExpired(now + 33L * 24 * 60 * 60 * 1000L))
+    }
+
+    @Test
+    fun `a real renewal with a new token moves the expiry forward`() {
+        val now = 1_000_000_000_000L
+        val first = Entitlement.fromSku("pro_monthly", now = now, token = "tok-A")
+
+        val renewed = Entitlement.fromSku(
+            "pro_monthly",
+            now = now + 31L * 24 * 60 * 60 * 1000L,
+            previous = first,
+            previousToken = "tok-A",
+            token = "tok-B",
+        )
+
+        assertTrue(renewed.expiresAtMs > first.expiresAtMs)
+        assertFalse(renewed.isExpired(now + 50L * 24 * 60 * 60 * 1000L))
+    }
+
+    /**
+     * Play still reports PURCHASED during its own grace period, after our local
+     * date has passed. That answer is Play's, so it is honoured — but only once per
+     * token, and it still carries an end date, so the revival is a month, not
+     * forever.
+     */
+    @Test
+    fun `a lapsed row Play still reports as active is revived once, with an end date`() {
+        val now = 1_000_000_000_000L
+        val lapsed = Entitlement(Tier.PRO, "play", now - 1L)
+
+        val revived = Entitlement.fromSku(
+            "pro_monthly",
+            now = now,
+            previous = lapsed,
+            previousToken = "tok-A",
+            token = "tok-A",
+        )
+
+        assertTrue(revived.expiresAtMs > now)
+        // And it lapses again: this is not a lifetime grant.
+        assertTrue(revived.isExpired(now + 33L * 24 * 60 * 60 * 1000L))
+    }
 }
