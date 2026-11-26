@@ -141,36 +141,57 @@ fun WeekSection(week: List<DaySchedule>) {
     val todayIso = MarketTime.isoDayNumber()
     week.forEach { day ->
         val isToday = day.day == todayIso
-        Row(
+        val rowBg = if (isToday) SntpColors.SandDim else androidx.compose.ui.graphics.Color.Transparent
+        // The seed records that Monday and Friday are "usually closed, some shops
+        // open in the morning", and the note was being thrown away: the row printed
+        // a flat "مغلق" over the one qualification that makes it true. The note is
+        // part of the schedule, so it is printed under the day it belongs to.
+        val note = when (displayLocale().language) {
+            "fr" -> day.noteFr?.takeIf { it.isNotBlank() } ?: day.noteAr?.takeIf { it.isNotBlank() }
+            else -> day.noteAr?.takeIf { it.isNotBlank() } ?: day.noteFr?.takeIf { it.isNotBlank() }
+        }
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(if (isToday) SntpColors.SandDim else androidx.compose.ui.graphics.Color.Transparent)
+                .background(rowBg)
                 .padding(horizontal = 10.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = dayName(day.day),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                color = SntpColors.TextPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            val hours = when {
-                day.open == null -> stringResource(R.string.closed_day)
-                day.open != null && day.close != null -> {
-                    // The time pair is a single LTR run inside an Arabic row; without
-                    // the isolate the dash lands between the wrong numbers.
-                    "\u2066${day.open} — ${day.close}\u2069"
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = dayName(day.day),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    color = SntpColors.TextPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+                val hours = when {
+                    // No hours plus a note is not "closed" — the note may say the day
+                    // is partly open, which a flat "مغلق" would deny.
+                    day.open == null && note != null -> stringResource(R.string.unknown_day)
+                    day.open == null -> stringResource(R.string.closed_day)
+                    day.close != null -> {
+                        // The time pair is a single LTR run inside an Arabic row; without
+                        // the isolate the dash lands between the wrong numbers.
+                        "\u2066${day.open} — ${day.close}\u2069"
+                    }
+                    else -> stringResource(R.string.unknown_day)
                 }
-                else -> stringResource(R.string.unknown_day)
+                Text(
+                    text = hours,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (day.open == null && note == null) SntpColors.Closed else SntpColors.TextPrimary,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                )
             }
-            Text(
-                text = hours,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (day.open == null) SntpColors.Closed else SntpColors.TextPrimary,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-            )
+            if (note != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SntpColors.TextSecondary,
+                )
+            }
         }
     }
 }
