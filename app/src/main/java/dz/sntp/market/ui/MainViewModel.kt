@@ -97,6 +97,15 @@ class MainViewModel : ViewModel() {
 
         viewModelScope.launch {
             val stored = app.entitlements.current()
+            // Only a *live* Play row has an active SKU. `current()` already turns an
+            // expired entitlement into FREE, so the stored SKU has to be dropped with
+            // it: keeping it marked a row "current" for a lapsed subscriber and
+            // disabled every buy button, leaving them unable to resubscribe.
+            val liveSku = if (stored.tier != Tier.FREE && stored.source == "play") {
+                prefs.playSku()
+            } else {
+                null
+            }
             _ui.update {
                 it.copy(
                     notifyEnabled = prefs.notifyEnabled.first(),
@@ -104,13 +113,18 @@ class MainViewModel : ViewModel() {
                     themeMode = prefs.themeMode(),
                     tier = stored.tier,
                     isPro = stored.isPro,
-                    activeSku = prefs.playSku(),
+                    activeSku = liveSku,
                     unlockedShops = prefs.unlockedShops(),
                 )
             }
             // The server may know better (promo grant made on another install).
             runCatching { app.entitlements.syncFromServer() }.getOrNull()?.let { e ->
-                _ui.update { it.copy(tier = e.tier, isPro = e.isPro) }
+                // A server grant (promo or admin) is not a Play subscription, so no
+                // Play row is current and the sheet must not claim one is. A live
+                // Play row survives syncFromServer untouched — save() refuses to
+                // overwrite it — and keeps its SKU.
+                val sku = if (e.source == "play") _ui.value.activeSku else null
+                _ui.update { it.copy(tier = e.tier, isPro = e.isPro, activeSku = sku) }
             }
         }
         refresh(initial = true)
