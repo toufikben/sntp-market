@@ -33,6 +33,11 @@
     <string name="notif_seed_subtext">جدول معتاد — غير مؤكد</string>
     <string name="notif_changed_title">تغيّرت الحالة: %1$s</string>
 
+    <!-- Widget -->
+    <string name="widget_description">حالة سوق سانتيبي على الشاشة الرئيسية</string>
+    <string name="widget_no_data">لم تُقرأ الحالة بعد — افتح التطبيق</string>
+    <string name="widget_stale">آخر معلومة معروفة — غير مؤكدة الآن</string>
+
     <!-- Voting -->
     <string name="vote_question">هل السوق مفتوح الآن؟</string>
     <string name="vote_question_hint">صوّتك يُحسب فقط إذا كنت قريباً من السوق · تصويت واحد كل 20 دقيقة</string>

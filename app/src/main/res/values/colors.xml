@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget colours, kept as literals because RemoteViews renders outside Compose and
+  cannot read the palette. Values mirror LightPalette so the widget and the app
+  agree; the launcher decides the surrounding wallpaper, so the card carries its
+  own opaque background rather than following the system dark theme.
+-->
+<resources>
+    <color name="widget_bg">#FFF6F1E7</color>
+    <color name="widget_text_primary">#FF1A1A1A</color>
+    <color name="widget_text_secondary">#FF5A5A5A</color>
+    <color name="widget_open">#FF1E8E4E</color>
+    <color name="widget_closed">#FFB23A2E</color>
+    <color name="widget_unknown">#FF8A6D1F</color>
+</resources>

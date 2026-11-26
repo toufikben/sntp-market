@@ -7,6 +7,7 @@ import dz.sntp.market.SntpApp
 import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.repo.PendingVotes
 import dz.sntp.market.util.MarketTime
+import dz.sntp.market.widget.StatusWidgetProvider
 import kotlinx.coroutines.flow.first
 
 /**
@@ -62,6 +63,10 @@ class MorningWorker(
         if (PendingVotes.count(applicationContext) > 0) {
             runCatching { app.voteRepository.flushPending() }
         }
+
+        // The 05:00 read is the freshest thing the widget will see all morning, and
+        // on a phone that kills background work it may be the only one.
+        runCatching { StatusWidgetProvider.updateAll(applicationContext) }
 
         return Result.success()
     }

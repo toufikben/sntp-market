@@ -19,6 +19,7 @@ import dz.sntp.market.data.model.VoteOutcome
 import dz.sntp.market.data.repo.PendingVotes
 import dz.sntp.market.notify.Notifier
 import dz.sntp.market.notify.Scheduler
+import dz.sntp.market.widget.StatusWidgetProvider
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -165,6 +166,11 @@ class MainViewModel : ViewModel() {
             }
             // Anything queued while offline goes out on the next successful read.
             runCatching { votes.flushPending() }
+
+            // The widget shows the same cached row the screen does, so a refresh is
+            // exactly when it needs redrawing. Its own 30-minute tick cannot know
+            // that the app just learned something newer.
+            runCatching { StatusWidgetProvider.updateAll(app) }
         }
     }
 

@@ -40,7 +40,7 @@ SNTP سوق سانتيبي: مفتوح الآن؟
 • الجدول الأسبوعي المعتاد، مع تمييز اليوم.
 • سجل الشهر: كم مرة كان السوق مغلقاً فعلاً.
 • دليل محلات السوق وأرقام الهاتف.
-• إشعار صباحي واحد فقط، وفقط إذا تغيّرت الحالة.
+• إشعار كل صباح، وتنبيه إضافي إذا تغيّرت الحالة داخل اليوم.
 
 ■ بدون حساب
 لا تسجيل، لا رقم هاتف، لا بريد. معرّف عشوائي على جهازك فقط.
@@ -53,7 +53,7 @@ SNTP سوق سانتيبي: مفتوح الآن؟
 
 **ما الجديد (v0.1.0):**
 ```
-الإصدار الأول: حالة السوق، التصويت، الجدول، السجل، دليل المحلات، الوضع الليلي، وإشعار الصباح.
+الإصدار الأول: حالة السوق، التصويت، الجدول، السجل، دليل المحلات، الوضع الليلي، وإشعار الصباح مع تنبيه تغيّر الحالة.
 ```
 
 ---
@@ -94,7 +94,7 @@ Cette application remplace le hasard par une information — et dit clairement q
 • L'horaire habituel de la semaine, avec le jour en cours.
 • L'historique du mois : combien de fois le marché était réellement fermé.
 • L'annuaire des boutiques et leurs numéros.
-• Une seule notification le matin, et seulement si l'état a changé.
+• Une notification chaque matin, et une alerte si l'état change dans la journée.
 
 ■ Sans compte
 Pas d'inscription, pas de numéro, pas d'e-mail. Un identifiant aléatoire sur votre appareil.
@@ -107,7 +107,7 @@ Avertissement : application indépendante. Informations non officielles collect�
 
 **Nouveautés :**
 ```
-Première version : état du marché, vote, horaire, historique, annuaire, mode sombre et notification du matin.
+Première version : état du marché, vote, horaire, historique, annuaire, mode sombre, notification du matin et alerte de changement.
 ```
 
 ---

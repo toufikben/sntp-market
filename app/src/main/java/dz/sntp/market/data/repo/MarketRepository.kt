@@ -112,6 +112,29 @@ class MarketRepository(
         seedState(freshness)
     }
 
+    /**
+     * The last known state, read from disk with no network call. The home-screen
+     * widget uses this: it must show the same freshness the app would show for the
+     * same row, so the freshness rules live in exactly one place — here, shared
+     * with [loadState]'s offline branch.
+     *
+     * Returns null when nothing has ever been cached, which is different from
+     * "cached and unknown".
+     */
+    suspend fun cachedStateOnly(): MarketState? = withContext(Dispatchers.IO) {
+        val (cachedJson, cachedAt) = prefs.cachedState()
+        val dto = cachedJson?.let {
+            runCatching { json.decodeFromString(MarketStateDto.serializer(), it) }.getOrNull()
+        } ?: return@withContext null
+
+        val now = System.currentTimeMillis()
+        val evidenceAge = IsoTime.toEpochMs(dto.updatedAt).takeIf { it > 0 }
+            ?.let { now - it }
+            ?: (now - cachedAt)
+        val freshness = if (evidenceAge <= freshWindowMs) Freshness.CACHED else Freshness.STALE
+        dto.toDomain(freshness, cachedAt)
+    }
+
     private suspend fun fetchState(): MarketStateDto? {
         if (!isConfigured) return null
         val body = client.get(
