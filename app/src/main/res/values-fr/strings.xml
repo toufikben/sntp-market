@@ -131,6 +131,7 @@
     <string name="upgrade_unavailable">Le paiement Google Play n\'est pas encore activé pour cette version.</string>
     <string name="upgrade_current">Votre offre</string>
     <string name="upgrade_failed">Le paiement n\'a pas démarré. Vérifiez votre connexion et la mise à jour de Google Play.</string>
+    <string name="upgrade_already_pro">Vous avez déjà Pro — inutile de prendre un second abonnement.</string>
     <string name="ad_label">Sponsorisé</string>
     <string name="ad_placeholder_title">Espace publicitaire</string>
     <string name="ad_placeholder_body">Annoncez votre boutique aux commerçants du marché SNTP.</string>

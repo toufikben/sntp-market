@@ -39,10 +39,16 @@ fun UpgradeSheet(
     buyError: Boolean,
     prices: Map<String, String>,
     tier: Tier,
+    activeSku: String?,
     onDismiss: () -> Unit,
     onBuy: (String) -> Unit,
 ) {
     if (!visible) return
+
+    // Nothing on this sheet is purchasable while a live plan is held: the rows
+    // would charge for a second Pro, and Play would treat it as an upgrade of a
+    // subscription that is already running.
+    val canBuy = billingReady && activeSku == null && tier == Tier.FREE
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -76,8 +82,11 @@ fun UpgradeSheet(
                 price = prices[BillingManager.SKU_PRO_MONTHLY]
                     ?: stringResource(R.string.plan_pro_monthly_price),
                 features = stringResource(R.string.plan_pro_features),
-                active = tier == Tier.PRO,
-                enabled = billingReady,
+                // Which row is paid for, not just which tier: both plans are PRO,
+                // so keying the badge on the tier marked the monthly and the yearly
+                // row "current" at once for a monthly subscriber.
+                active = activeSku == BillingManager.SKU_PRO_MONTHLY,
+                enabled = canBuy,
                 onClick = { onBuy(BillingManager.SKU_PRO_MONTHLY) },
             )
             HorizontalDivider(color = SntpColors.Divider)
@@ -86,8 +95,8 @@ fun UpgradeSheet(
                 price = prices[BillingManager.SKU_PRO_YEARLY]
                     ?: stringResource(R.string.plan_pro_yearly_price),
                 features = stringResource(R.string.plan_pro_features),
-                active = tier == Tier.PRO,
-                enabled = billingReady,
+                active = activeSku == BillingManager.SKU_PRO_YEARLY,
+                enabled = canBuy,
                 onClick = { onBuy(BillingManager.SKU_PRO_YEARLY) },
             )
             HorizontalDivider(color = SntpColors.Divider)
@@ -100,6 +109,10 @@ fun UpgradeSheet(
             Text(
                 text = when {
                     buyError -> stringResource(R.string.upgrade_failed)
+                    // Already Pro without a Play SKU (the first-500 promo, or an
+                    // admin grant). Neither row is the one they hold, and selling
+                    // them a second Pro would be charging for something they have.
+                    tier != Tier.FREE && activeSku == null -> stringResource(R.string.upgrade_already_pro)
                     billingReady -> stringResource(R.string.upgrade_free_note)
                     else -> stringResource(R.string.upgrade_unavailable)
                 },

@@ -52,6 +52,12 @@ data class UiState(
     val prices: Map<String, String> = emptyMap(),
     val buyError: Boolean = false,
     val showUpgrade: Boolean = false,
+    /**
+     * The SKU this device is actually paying for, when the subscription came from
+     * Play. The sheet offers monthly and yearly and both map to PRO, so the tier
+     * alone cannot say which row is the active one.
+     */
+    val activeSku: String? = null,
     val unlockedShops: Set<String> = emptySet(),
     val tab: Int = 0,
     val versionName: String = BuildConfig.VERSION_NAME,
@@ -73,7 +79,7 @@ class MainViewModel : ViewModel() {
             viewModelScope.launch {
                 val e = app.entitlements.grantFromPlay(sku, token)
                 _ui.update {
-                    it.copy(tier = e.tier, isPro = e.isPro, showUpgrade = false)
+                    it.copy(tier = e.tier, isPro = e.isPro, showUpgrade = false, activeSku = sku)
                 }
             }
         }
@@ -98,6 +104,7 @@ class MainViewModel : ViewModel() {
                     themeMode = prefs.themeMode(),
                     tier = stored.tier,
                     isPro = stored.isPro,
+                    activeSku = prefs.playSku(),
                     unlockedShops = prefs.unlockedShops(),
                 )
             }

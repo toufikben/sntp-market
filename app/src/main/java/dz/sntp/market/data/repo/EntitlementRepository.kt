@@ -85,7 +85,7 @@ class EntitlementRepository(
                 token = token,
             )
             // One edit: a new period must never be recorded under the old token.
-            prefs.setPlayEntitlement(e, token)
+            prefs.setPlayEntitlement(e, token, sku)
             e
         }
 

@@ -140,6 +140,7 @@
     <string name="upgrade_unavailable">الدفع عبر Google Play لم يُفعّل لهذا الإصدار بعد.</string>
     <string name="upgrade_current">خطتك الحالية</string>
     <string name="upgrade_failed">لم يبدأ الدفع. تحقّق من اتصالك ومن تحديث تطبيق Google Play.</string>
+    <string name="upgrade_already_pro">لديك Pro بالفعل — لا حاجة لاشتراك ثانٍ.</string>
     <string name="ad_label">رعاية</string>
     <string name="ad_placeholder_title">مساحة إعلانية</string>
     <string name="ad_placeholder_body">أعلن عن محلك أو خدمتك لتجار سوق سانتيبي.</string>

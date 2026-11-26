@@ -59,6 +59,12 @@ class Prefs(private val context: Context) {
         /** The Play purchase token the stored entitlement came from. */
         val PLAY_TOKEN = stringPreferencesKey("play_token")
         /**
+         * The SKU the live Play subscription was bought with. The upgrade sheet
+         * offers two plans that both map to PRO, so the tier alone cannot say which
+         * row is the one already paid for — and it marked both as active.
+         */
+        val PLAY_SKU = stringPreferencesKey("play_sku")
+        /**
          * Shop ids whose phone number this device already unlocked by watching the
          * rewarded slot. Kept here rather than in memory: the unlock is what the
          * user paid attention for, and it vanished on every relaunch.
@@ -100,14 +106,18 @@ class Prefs(private val context: Context) {
      * period recorded against the previous token, which is exactly the pair
      * [Entitlement.fromSku] uses to decide whether a period is continuing.
      */
-    suspend fun setPlayEntitlement(e: Entitlement, token: String?) {
+    suspend fun setPlayEntitlement(e: Entitlement, token: String?, sku: String? = null) {
         context.dataStore.edit { d ->
             d[K.TIER] = e.tier.name.lowercase()
             d[K.TIER_SOURCE] = e.source
             d[K.TIER_EXPIRES] = e.expiresAtMs
             if (token == null) d.remove(K.PLAY_TOKEN) else d[K.PLAY_TOKEN] = token
+            if (sku == null) d.remove(K.PLAY_SKU) else d[K.PLAY_SKU] = sku
         }
     }
+
+    /** The SKU behind the stored Play subscription, when it came from Play. */
+    suspend fun playSku(): String? = context.dataStore.data.first()[K.PLAY_SKU]
 
     suspend fun promoAttempted(): Boolean =
         context.dataStore.data.map { it[K.PROMO_ATTEMPTED] ?: false }.first()

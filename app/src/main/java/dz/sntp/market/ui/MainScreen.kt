@@ -370,6 +370,7 @@ private fun MainContent(
             buyError = ui.buyError,
             prices = ui.prices,
             tier = ui.tier,
+            activeSku = ui.activeSku,
             onDismiss = { vm.setShowUpgrade(false) },
             onBuy = { sku -> vm.buy(context as? android.app.Activity, sku) },
         )
