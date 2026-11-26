@@ -92,6 +92,9 @@
     <string name="history_offline">تعذّر تحميل السجل — لا يوجد اتصال</string>
     <string name="history_cached">آخر سجل محفوظ على هذا الهاتف</string>
     <string name="history_legend">مفتوح · مغلق · غير مؤكد</string>
+    <string name="history_prev_month">الشهر السابق</string>
+    <string name="history_next_month">الشهر التالي</string>
+    <string name="history_month_empty">لا سجل لهذا الشهر</string>
 
     <!-- Settings -->
     <string name="settings_title">الإعدادات</string>

@@ -13,11 +13,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,7 +43,19 @@ import java.time.YearMonth
 @Composable
 fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
     val today = MarketTime.today()
-    val month = YearMonth.from(today)
+    val currentMonth = YearMonth.from(today)
+
+    // The repository fetches 120 days, and the grid drew only the current month —
+    // three quarters of the archive was downloaded, cached, and unreachable. On
+    // the 2nd of a month the whole "history" tab was two squares over a real
+    // record. The oldest month the server still answers for is the floor.
+    val oldestMonth = remember { YearMonth.from(today.minusDays(120)) }
+    var shownMonth by remember { mutableIntStateOf(0) }
+    val month = currentMonth.minusMonths(shownMonth.toLong())
+    val canGoOlder = month > oldestMonth
+    val canGoNewer = shownMonth > 0
+    val olderLabel = stringResource(R.string.history_prev_month)
+    val newerLabel = stringResource(R.string.history_next_month)
 
     Text(
         text = stringResource(R.string.history_title),
@@ -52,12 +71,46 @@ fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
     )
     Spacer(Modifier.height(16.dp))
 
-    Text(
-        text = MarketTime.monthLabel(month, displayLocale()),
-        style = MaterialTheme.typography.titleLarge,
-        color = SntpColors.DeepGreen,
-        fontWeight = FontWeight.Black,
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = MarketTime.monthLabel(month, displayLocale()),
+            style = MaterialTheme.typography.titleLarge,
+            color = SntpColors.DeepGreen,
+            fontWeight = FontWeight.Black,
+            modifier = Modifier.weight(1f),
+        )
+        // Only drawn when there is somewhere to go, so a market with one month of
+        // history does not show two dead arrows.
+        if (canGoOlder) {
+            TextButton(onClick = { shownMonth++ }) {
+                Text(
+                    text = "\u2039",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = SntpColors.DeepGreen,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.semantics {
+                        contentDescription = olderLabel
+                    },
+                )
+            }
+        }
+        if (canGoNewer) {
+            TextButton(onClick = { shownMonth-- }) {
+                Text(
+                    text = "\u203a",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = SntpColors.DeepGreen,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.semantics {
+                        contentDescription = newerLabel
+                    },
+                )
+            }
+        }
+    }
     Spacer(Modifier.height(12.dp))
 
     val firstDay = month.atDay(1)
@@ -98,11 +151,17 @@ fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
     val monthHasRows = history.keys.any { it.startsWith(monthKey) }
     if (!monthHasRows) {
         Text(
-            // "No record yet" is a claim about the market. Offline, the truth is
-            // that the record exists and could not be fetched — saying the market
-            // has no history would be a different, false statement.
+            // "No record yet" is a claim about the *market*, and it is only true for
+            // the month we are still in: the archive starts now. Any earlier month
+            // came back empty because nothing was recorded then, which is a
+            // different sentence. Offline is a third thing again — the record
+            // exists and could not be fetched.
             text = stringResource(
-                if (fromCache) R.string.history_offline else R.string.history_empty
+                when {
+                    fromCache -> R.string.history_offline
+                    month == currentMonth -> R.string.history_empty
+                    else -> R.string.history_month_empty
+                }
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = SntpColors.TextSecondary,

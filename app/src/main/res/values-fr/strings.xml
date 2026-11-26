@@ -85,6 +85,9 @@
     <string name="history_offline">Historique indisponible — pas de connexion</string>
     <string name="history_cached">Dernier historique enregistré sur ce téléphone</string>
     <string name="history_legend">Ouvert · Fermé · Non confirmé</string>
+    <string name="history_prev_month">Mois précédent</string>
+    <string name="history_next_month">Mois suivant</string>
+    <string name="history_month_empty">Aucun historique pour ce mois</string>
 
     <string name="settings_title">Réglages</string>
     <string name="settings_notify">Notification du matin</string>
