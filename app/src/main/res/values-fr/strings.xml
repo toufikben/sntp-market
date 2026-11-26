@@ -29,6 +29,7 @@
     <string name="notif_opens_at">Ouvre à %1$s</string>
     <string name="notif_no_confirmation">Aucune confirmation des commerçants pour l\'instant</string>
     <string name="notif_seed_subtext">Horaire habituel — non confirmé</string>
+    <string name="notif_stale_subtext">Dernière information connue — non confirmée</string>
     <string name="notif_changed_title">Changement : %1$s</string>
 
     <!-- Widget -->

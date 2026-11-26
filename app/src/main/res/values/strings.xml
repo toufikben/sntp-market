@@ -31,6 +31,7 @@
     <string name="notif_opens_at">الفتح على %1$s</string>
     <string name="notif_no_confirmation">لا يوجد تأكيد من التجار بعد</string>
     <string name="notif_seed_subtext">جدول معتاد — غير مؤكد</string>
+    <string name="notif_stale_subtext">آخر معلومة معروفة — غير مؤكدة الآن</string>
     <string name="notif_changed_title">تغيّرت الحالة: %1$s</string>
 
     <!-- Widget -->

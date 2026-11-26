@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import dz.sntp.market.MainActivity
 import dz.sntp.market.R
 import dz.sntp.market.data.model.MarketState
+import dz.sntp.market.data.model.Freshness
 import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Source
 
@@ -116,9 +117,18 @@ object Notifier {
             .setAutoCancel(true)
             .setContentIntent(pending)
 
-        if (state.source == Source.SEED) {
-            builder.setSubText(context.getString(R.string.notif_seed_subtext))
+        // The morning worker runs without a network constraint on purpose (the
+        // inside of the market has no signal), so the state it posts is often read
+        // from disk rather than fetched. Labelling only the seed left the far more
+        // common case unmarked: a notification reading "السوق مفتوح" built from
+        // yesterday's row, with nothing saying so. A notification is the one place
+        // the user cannot see the stale banner, so it has to carry the caveat.
+        val caveat = when {
+            state.source == Source.SEED -> R.string.notif_seed_subtext
+            state.freshness == Freshness.LIVE -> 0
+            else -> R.string.notif_stale_subtext
         }
+        if (caveat != 0) builder.setSubText(context.getString(caveat))
 
         return runCatching {
             NotificationManagerCompat.from(context).notify(id, builder.build())
