@@ -45,6 +45,14 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      # The APK that ships is the release one, and until now it had never been
+      # compiled here: only `debug` was built. R8 runs only in release, so a
+      # stripped kotlinx.serialization serializer or a shrunk-away resource would
+      # compile green forever and crash on the first launch of the Play build.
+      # Unsigned is fine — this step exists to prove R8 and shrinking survive.
+      - name: Assemble release APK (R8 + resource shrinking)
+        run: ./gradlew assembleRelease --stacktrace
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
