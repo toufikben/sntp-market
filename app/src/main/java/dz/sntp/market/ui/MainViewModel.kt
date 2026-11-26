@@ -139,8 +139,7 @@ class MainViewModel : ViewModel() {
             val rep = async { votes.syncReputation() ?: prefs.reputation() }
 
             val stateV = runCatching { state.await() }.getOrElse { _ui.value.state }
-            val weekV = runCatching { week.await() }.getOrElse { _ui.value.week }
-            val shopsV = runCatching { shops.await() }.getOrElse { _ui.value.shops }
+            val weekV = runCatching { week.await() }.getOrElse { _ui.value.week }            val shopsV = runCatching { shops.await() }.getOrElse { _ui.value.shops }
             val sponsorsV = runCatching { sponsors.await() }.getOrElse { _ui.value.sponsors }
             val historyV = runCatching { history.await() }.getOrElse { _ui.value.history to false }
             val repV = runCatching { rep.await() }.getOrElse { _ui.value.reputation }

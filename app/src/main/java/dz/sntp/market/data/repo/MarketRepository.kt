@@ -74,7 +74,7 @@ class MarketRepository(
             } else {
                 Freshness.LIVE
             }
-            val domain = remote.toDomain(freshness, now)
+            val domain = withUsualHours(remote.toDomain(freshness, now), cachedWeekOrSeed())
             prefs.saveCachedState(
                 json.encodeToString(MarketStateDto.serializer(), remote),
                 now,
@@ -102,7 +102,10 @@ class MarketRepository(
                     evidenceAge <= freshWindowMs -> Freshness.CACHED
                     else -> Freshness.STALE
                 }
-                return@withContext dto.toDomain(freshness, cachedAt)
+                return@withContext withUsualHours(
+                    dto.toDomain(freshness, cachedAt),
+                    cachedWeekOrSeed(),
+                )
             }
         }
 
@@ -132,7 +135,34 @@ class MarketRepository(
             ?.let { now - it }
             ?: (now - cachedAt)
         val freshness = if (evidenceAge <= freshWindowMs) Freshness.CACHED else Freshness.STALE
-        dto.toDomain(freshness, cachedAt)
+        withUsualHours(dto.toDomain(freshness, cachedAt), cachedWeekOrSeed())
+    }
+
+    /**
+     * An unknown state carries no hours, so the card printed "لا بيانات اليوم"
+     * while the week tab one tap away knew today's usual window — and the offline
+     * path, which falls back to the seed, showed that window. The same market had
+     * two answers depending on the network.
+     *
+     * Filling the gap here keeps the label honest: the card words these hours
+     * "المعتاد", never a confirmation. It lives in the repository rather than in
+     * the screen so the widget, which reads only the cache, cannot disagree.
+     */
+    private fun withUsualHours(state: MarketState, week: List<DaySchedule>): MarketState {
+        if (state.status != MarketStatus.UNKNOWN) return state
+        if (state.opensAtLocal != null || state.closesAtLocal != null) return state
+        val today = week.firstOrNull { it.day == MarketTime.isoDayNumber() } ?: return state
+        if (today.open == null) return state
+        return state.copy(opensAtLocal = today.open, closesAtLocal = today.close)
+    }
+
+    private suspend fun cachedWeekOrSeed(): List<DaySchedule> {
+        val cached = prefs.cachedWeek() ?: return SntpSeed.week
+        return runCatching {
+            json.decodeFromString(
+                kotlinx.serialization.builtins.ListSerializer(DaySchedule.serializer()), cached
+            )
+        }.getOrNull()?.takeIf { it.isNotEmpty() } ?: SntpSeed.week
     }
 
     private suspend fun fetchState(): MarketStateDto? {

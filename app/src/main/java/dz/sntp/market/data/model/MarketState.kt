@@ -56,6 +56,16 @@ data class MarketState(
 ) {
     val isTrustworthy: Boolean get() = source == Source.ADMIN || confidence >= 0.6
 
+    /**
+     * Nobody has confirmed anything today — which is not the same claim as "the
+     * traders looked and could not agree". The screen has separate words for the
+     * two, and the distinction must not rest on whether an hour happens to be
+     * known: the usual timetable is filled in for an unknown state too, and that
+     * turned "no data today" into "unconfirmed" as a side effect.
+     */
+    val hasNoDataToday: Boolean
+        get() = status == MarketStatus.UNKNOWN && reportersCount == 0 && confidence <= 0.0
+
     companion object {
         fun unknown(freshness: Freshness) = MarketState(
             status = MarketStatus.UNKNOWN,

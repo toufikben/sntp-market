@@ -99,7 +99,7 @@ fun StatusCard(ui: UiState) {
 private fun statusText(s: MarketState): String = when (s.status) {
     MarketStatus.OPEN -> stringResource(R.string.status_open)
     MarketStatus.CLOSED -> stringResource(R.string.status_closed)
-    MarketStatus.UNKNOWN -> if (s.opensAtLocal == null && s.confidence <= 0.0) {
+    MarketStatus.UNKNOWN -> if (s.hasNoDataToday) {
         stringResource(R.string.status_no_data)
     } else {
         stringResource(R.string.status_unknown)

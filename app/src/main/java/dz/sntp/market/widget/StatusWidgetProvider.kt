@@ -106,11 +106,9 @@ class StatusWidgetProvider : AppWidgetProvider() {
             }
 
             // The app's own rule, so the widget and the card cannot disagree: an
-            // unknown with no hours and no confidence is "no data today", not
+            // unknown with no reporters and no confidence is "no data today", not
             // "unconfirmed" — the second implies someone looked and could not agree.
-            val noData = state.status == MarketStatus.UNKNOWN &&
-                state.opensAtLocal == null &&
-                state.confidence <= 0.0
+            val noData = state.hasNoDataToday
 
             val statusText = when {
                 state.status == MarketStatus.OPEN -> context.getString(R.string.status_open)
@@ -126,11 +124,14 @@ class StatusWidgetProvider : AppWidgetProvider() {
 
             v.setTextViewText(R.id.widget_status, statusText)
             v.setTextColor(R.id.widget_status, context.getColor(statusColor))
-            // Empty when the status word already said it, so the card does not print
-            // "لا بيانات اليوم" twice on two lines.
+            // "لا بيانات اليوم" used to repeat on the second line. Suppressed only
+            // when it would say the same thing twice — with the usual window now
+            // filled in for an unknown state, that second line carries real
+            // information and must stay.
+            val detail = detailOf(context, state)
             v.setTextViewText(
                 R.id.widget_detail,
-                if (noData) "" else detailOf(context, state),
+                if (detail == statusText) "" else detail,
             )
             v.setTextViewText(R.id.widget_trust, trustOf(context, state))
             // An unconfirmed row keeps its status word — the app does the same, the
