@@ -90,7 +90,13 @@ fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
     }
 
     Spacer(Modifier.height(16.dp))
-    if (history.isEmpty()) {
+    // The grid draws one month, so the message must answer for that month. It used
+    // to test the whole 120-day map: with rows from last month and none this month,
+    // the grid was blank and *neither* message appeared — a month of empty squares
+    // with nothing saying why.
+    val monthKey = month.toString()          // "2026-11"
+    val monthHasRows = history.keys.any { it.startsWith(monthKey) }
+    if (!monthHasRows) {
         Text(
             // "No record yet" is a claim about the market. Offline, the truth is
             // that the record exists and could not be fetched — saying the market
