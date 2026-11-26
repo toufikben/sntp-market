@@ -180,7 +180,12 @@ class StatusWidgetProvider : AppWidgetProvider() {
                     if (o != null && c != null) {
                         context.getString(R.string.usual_hours, isolate(o), isolate(c))
                     } else {
-                        context.getString(R.string.status_no_data)
+                        // Empty, not "لا بيانات اليوم". When there truly is no data
+                        // the status word already says it and this line is suppressed
+                        // for repeating it; the only way to reach here with a real
+                        // second line is a state traders reported and could not agree
+                        // on, where "no data today" would contradict the word above it.
+                        ""
                     }
                 }
             }
