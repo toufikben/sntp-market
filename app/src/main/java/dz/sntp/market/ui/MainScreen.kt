@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -238,7 +239,9 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
             // and mark it as ours, so granting it in settings later restores it.
             vm.gateNotificationsOff()
         } else {
-            Scheduler.scheduleMorning(context, ui.notifyHour, 0)
+            // ensure, not schedule: on every launch this effect runs, and
+            // re-enqueueing would cancel a run that is due this minute.
+            Scheduler.ensureMorning(context, ui.notifyHour, 0)
         }
     }
 
@@ -246,10 +249,26 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
     // kept showing the morning state with no warning: nothing refreshed outside
     // the ViewModel's first load, a manual tap, or a vote.
     val lifecycle = LocalLifecycleOwner.current
+    // The observer below is created once, so reading `ui` directly inside it would
+    // capture the first value forever: the switch could be turned off and the daily
+    // job would still be re-anchored on every resume.
+    val latestUi by rememberUpdatedState(ui)
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 vm.refreshIfStale()
+
+                // Re-anchor the daily job while there is still time before it. Each
+                // periodic run is measured from when the previous one actually ran,
+                // so a run delayed by Doze or by the battery killer moves every run
+                // after it: the 05:00 notification drifts to 07:00 over a few weeks.
+                // Only before the hour, because re-enqueueing cancels the existing
+                // work and would kill a run that is due or already posting.
+                val now = latestUi
+                if (now.notifyEnabled && Scheduler.isBeforeTarget(now.notifyHour, 0)) {
+                    Scheduler.scheduleMorning(context, now.notifyHour, 0)
+                }
+
                 // The permission may have been granted while the user was away in
                 // system settings — the one exit from the blocked state. Nothing
                 // tells us when that happens, so it is checked on every return.
