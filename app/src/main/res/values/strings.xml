@@ -5,7 +5,6 @@
     <!-- Status -->
     <string name="status_open">السوق مفتوح</string>
     <string name="status_closed">السوق مغلق</string>
-    <string name="status_soon">يفتح قريباً</string>
     <string name="status_unknown">غير مؤكد</string>
     <string name="status_no_data">لا بيانات اليوم</string>
 
@@ -21,7 +20,6 @@
     <string name="updated_at">آخر تحديث %1$s</string>
     <string name="stale_warning">آخر معلومة معروفة — غير مؤكدة الآن</string>
     <string name="offline_warning">لا اتصال — تُعرض آخر معلومة محفوظة</string>
-    <string name="call_trusted">اتصل بتاجر موثّق</string>
     <string name="refresh">تحديث</string>
 
     <!-- Notifications -->
@@ -84,8 +82,6 @@
     <string name="shop_call">اتصال</string>
     <string name="shop_whatsapp">واتساب</string>
     <string name="shop_verified">موثّق</string>
-    <string name="shop_claim">تبنّي هذا المحل</string>
-    <string name="shop_phone_locked">رقم الهاتف</string>
     <string name="shop_watch_ad">أظهر الرقم</string>
     <string name="shops_empty">لا توجد محلات محفوظة بعد</string>
     <string name="shops_no_match">لا محل يطابق «%1$s»</string>
@@ -102,7 +98,6 @@
     <string name="settings_notify">إشعار الصباح</string>
     <string name="settings_notify_desc">إشعار كل صباح حتى لو بقيت الحالة كما هي، وتنبيه إضافي إذا تغيّرت داخل اليوم</string>
     <string name="settings_notify_blocked">الإشعارات ممنوعة لهذا التطبيق. اسمح بها من إعدادات النظام</string>
-    <string name="settings_notify_time">وقت الإشعار</string>
     <string name="settings_language">اللغة</string>
     <string name="settings_battery">منع إيقاف التطبيق</string>
     <string name="settings_battery_desc">بعض الهواتف توقف الإشعارات. اضغط للسماح بالعمل في الخلفية</string>
@@ -130,12 +125,9 @@
     <string name="upgrade_free_note">الخطة المجانية تشمل حالة اليوم والجدول والسجل.</string>
     <string name="plan_pro_monthly">Pro شهري</string>
     <string name="plan_pro_yearly">Pro سنوي</string>
-    <string name="plan_boutique_monthly">Boutique شهري</string>
     <string name="plan_pro_monthly_price">1000 دج / شهر</string>
     <string name="plan_pro_yearly_price">9000 دج / سنة</string>
-    <string name="plan_boutique_price">2500 دج / شهر</string>
     <string name="plan_pro_features">بلا رعاية · أرقام المحلات · واتساب مباشر</string>
-    <string name="plan_boutique_features">كل مزايا Pro · صفحة موثّقة · «مفتوح الآن»</string>
     <string name="upgrade_buy">اشتراك</string>
     <string name="upgrade_unavailable">الدفع عبر Google Play لم يُفعّل لهذا الإصدار بعد.</string>
     <string name="upgrade_current">خطتك الحالية</string>

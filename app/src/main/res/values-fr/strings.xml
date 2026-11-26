@@ -4,7 +4,6 @@
 
     <string name="status_open">Marché ouvert</string>
     <string name="status_closed">Marché fermé</string>
-    <string name="status_soon">Ouvre bientôt</string>
     <string name="status_unknown">Non confirmé</string>
     <string name="status_no_data">Aucune donnée aujourd\'hui</string>
 
@@ -19,7 +18,6 @@
     <string name="updated_at">Mis à jour %1$s</string>
     <string name="stale_warning">Dernière info connue — non confirmée maintenant</string>
     <string name="offline_warning">Hors ligne — dernière info enregistrée</string>
-    <string name="call_trusted">Appeler un commerçant de confiance</string>
     <string name="refresh">Actualiser</string>
 
     <!-- Notifications -->
@@ -78,8 +76,6 @@
     <string name="shop_call">Appeler</string>
     <string name="shop_whatsapp">WhatsApp</string>
     <string name="shop_verified">Vérifié</string>
-    <string name="shop_claim">Revendiquer ce commerce</string>
-    <string name="shop_phone_locked">Numéro de téléphone</string>
     <string name="shop_watch_ad">Afficher le numéro</string>
     <string name="shops_empty">Aucun commerce enregistré</string>
     <string name="shops_no_match">Aucun commerce ne correspond à « %1$s »</string>
@@ -94,7 +90,6 @@
     <string name="settings_notify">Notification du matin</string>
     <string name="settings_notify_desc">Chaque matin, même si l\'état n\'a pas changé, plus une alerte s\'il change en cours de journée</string>
     <string name="settings_notify_blocked">Notifications bloquées pour cette application. Autorisez-les dans les réglages du système</string>
-    <string name="settings_notify_time">Heure de la notification</string>
     <string name="settings_language">Langue</string>
     <string name="settings_battery">Empêcher la mise en veille</string>
     <string name="settings_battery_desc">Certains téléphones coupent les notifications</string>
@@ -121,12 +116,9 @@
     <string name="upgrade_free_note">L\'offre gratuite couvre l\'état du jour, l\'horaire et l\'historique.</string>
     <string name="plan_pro_monthly">Pro mensuel</string>
     <string name="plan_pro_yearly">Pro annuel</string>
-    <string name="plan_boutique_monthly">Boutique mensuel</string>
     <string name="plan_pro_monthly_price">1 000 DZD / mois</string>
     <string name="plan_pro_yearly_price">9 000 DZD / an</string>
-    <string name="plan_boutique_price">2 500 DZD / mois</string>
     <string name="plan_pro_features">Sans sponsoring · numéros des boutiques · WhatsApp direct</string>
-    <string name="plan_boutique_features">Tout Pro · page vérifiée · « ouvert maintenant »</string>
     <string name="upgrade_buy">S\'abonner</string>
     <string name="upgrade_unavailable">Le paiement Google Play n\'est pas encore activé pour cette version.</string>
     <string name="upgrade_current">Votre offre</string>

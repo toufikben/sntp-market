@@ -68,10 +68,6 @@ object MarketTime {
         return "%02d:%02d".format(t.hour, t.minute)
     }
 
-    fun dayLabelIso(iso: Int): String = when (iso) {
-        1 -> "Mon"; 2 -> "Tue"; 3 -> "Wed"; 4 -> "Thu"; 5 -> "Fri"; 6 -> "Sat"; else -> "Sun"
-    }
-
     /**
      * Day + month + year in the user's locale. Hand-built strings such as
      * "$day $dayOfMonth $year" come out mangled in RTL, because the bidi
