@@ -48,7 +48,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dz.sntp.market.R
+import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Shop
+import dz.sntp.market.data.model.Source
 import dz.sntp.market.data.model.VoteMessage
 import dz.sntp.market.notify.Notifier
 import dz.sntp.market.notify.Scheduler
@@ -63,6 +65,23 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    /**
+     * The hours to attach to a vote: only ones a trader actually confirmed.
+     *
+     * On a seed or unknown state the card shows the *usual* schedule, and the
+     * server adopts the newest vote's hours as the confirmed window. Sending them
+     * meant a trader tapping "open" at 09:00 attached the timetable's 07:00, which
+     * then came back as an observation — the seed guess laundered into a fact by
+     * one tap. The trader reports a state, not a schedule, so nothing is attached
+     * unless the hours already came from a confirmed source.
+     */
+    fun observedHours(): Pair<String?, String?> =
+        if (ui.state.source == Source.ADMIN || ui.state.status != MarketStatus.UNKNOWN) {
+            ui.state.opensAtLocal to ui.state.closesAtLocal
+        } else {
+            null to null
+        }
+
     // A vote needs a GPS fix. Nothing asked for the permission, so the first tap
     // on a vote button always ended in "we need your location" with no way to
     // give it. The tap is remembered and replayed once the user answers.
@@ -75,7 +94,8 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         val status = pendingVote
         pendingVote = null
         if (granted && status != null) {
-            vm.vote(status, ui.state.opensAtLocal, ui.state.closesAtLocal, null)
+            val (opens, closes) = observedHours()
+            vm.vote(status, opens, closes, null)
         } else if (!granted) {
             // The trader tapped "open", the system asked, they refused, and the tap
             // vanished in silence. The vote path already has a message for exactly
@@ -93,7 +113,8 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         ) == PackageManager.PERMISSION_GRANTED
 
         if (fine || coarse) {
-            vm.vote(status, ui.state.opensAtLocal, ui.state.closesAtLocal, null)
+            val (opens, closes) = observedHours()
+            vm.vote(status, opens, closes, null)
         } else {
             pendingVote = status
             locationPermission.launch(
@@ -104,6 +125,7 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
             )
         }
     }
+
     // From Android 13 the notification permission is not granted at install, and
     // nothing ever asked for it: the switch said "on", the worker ran every
     // morning, and the notification was silently dropped. Asking here is the
