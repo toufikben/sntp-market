@@ -170,6 +170,12 @@ class MainViewModel : ViewModel() {
             }
             // Anything queued while offline goes out on the next successful read.
             runCatching { votes.flushPending() }
+            // The counter above was read before the flush, so a queue that just
+            // drained kept advertising "votes waiting to send" over an empty file.
+            val left = PendingVotes.count(app)
+            if (left != _ui.value.pendingVotes) {
+                _ui.update { it.copy(pendingVotes = left) }
+            }
 
             // The widget shows the same cached row the screen does, so a refresh is
             // exactly when it needs redrawing. Its own 30-minute tick cannot know
