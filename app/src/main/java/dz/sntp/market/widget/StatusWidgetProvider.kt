@@ -193,6 +193,12 @@ class StatusWidgetProvider : AppWidgetProvider() {
          * no longer confirmed.
          */
         private fun trustOf(context: Context, state: MarketState): String {
+            // The seed is checked first, before freshness. A seed row is the usual
+            // timetable, not a report that has aged — saying "last known information,
+            // now unconfirmed" over it would claim a confirmation existed and lapsed,
+            // when nothing was ever confirmed.
+            if (state.source == Source.SEED) return context.getString(R.string.trust_seed)
+
             if (state.freshness == Freshness.STALE || state.freshness == Freshness.OFFLINE) {
                 return context.getString(R.string.widget_stale)
             }
@@ -201,9 +207,6 @@ class StatusWidgetProvider : AppWidgetProvider() {
                 Source.TRADERS -> context.getString(R.string.trust_traders)
                 Source.SEED -> context.getString(R.string.trust_seed)
             }
-            // The seed's own hours are never a confirmation, so the widget never
-            // labels them as one, whatever the freshness happens to be.
-            if (state.source == Source.SEED) return source
             val stamp = MarketTime.stamp(state.updatedAtEpochMs)
                 ?: return source
             // Same bidi reason as the hours: a bare HH:mm in an Arabic line.
