@@ -110,7 +110,7 @@ class EntitlementTest {
 
         val renewed = Entitlement.fromSku(
             "pro_monthly",
-            now = now + 31L * 24 * 60 * 60 * 1000L,
+            now = now + 33L * 24 * 60 * 60 * 1000L,
             previous = first,
             previousToken = "tok-A",
             token = "tok-A",
