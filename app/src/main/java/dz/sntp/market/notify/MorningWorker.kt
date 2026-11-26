@@ -54,6 +54,7 @@ class MorningWorker(
             prefs.setLastNotified(today, statusKey)
             // The user has now been told, so a refresh later today must not push a
             // "changed" alert for the very status the morning notification named.
+            prefs.setLastToldStatus(statusKey)
             prefs.setLastSeenStatus(statusKey)
         }
 

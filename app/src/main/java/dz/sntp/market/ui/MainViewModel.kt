@@ -19,7 +19,6 @@ import dz.sntp.market.data.model.VoteOutcome
 import dz.sntp.market.data.repo.PendingVotes
 import dz.sntp.market.notify.Notifier
 import dz.sntp.market.notify.Scheduler
-import dz.sntp.market.util.MarketTime
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -246,10 +245,14 @@ class MainViewModel : ViewModel() {
         // What the user was last told, which the morning worker also writes: a
         // dawn push already said "closed", so a later refresh finding "closed"
         // must not push a second time.
-        val lastTold = prefs.lastNotified().second
+        //
+        // This reads the *told* status, not the morning slot. Writing the slot
+        // here marked the day as spent, so a change found at 02:00 silently
+        // cancelled that morning's brief.
+        val lastTold = prefs.lastToldStatus()
         if (lastTold != key && prefs.notifyEnabled.first() && Notifier.canNotify(app)) {
             if (Notifier.showChange(app, next)) {
-                prefs.setLastNotified(MarketTime.isoDay(), key)
+                prefs.setLastToldStatus(key)
             }
         }
         prefs.setLastSeenStatus(key)

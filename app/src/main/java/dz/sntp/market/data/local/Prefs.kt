@@ -39,6 +39,8 @@ class Prefs(private val context: Context) {
         val LAST_NOTIFIED_DAY = stringPreferencesKey("last_notified_day")
         val LAST_NOTIFIED_STATUS = stringPreferencesKey("last_notified_status")
         val LAST_SEEN_STATUS = stringPreferencesKey("last_seen_status")
+        /** The status the user was last actually told, by either notification. */
+        val LAST_TOLD_STATUS = stringPreferencesKey("last_told_status")
         val THEME_MODE = intPreferencesKey("theme_mode")
         val TIER = stringPreferencesKey("entitlement_tier")
         val TIER_SOURCE = stringPreferencesKey("entitlement_source")
@@ -215,7 +217,7 @@ class Prefs(private val context: Context) {
         }
     }
 
-    /** Last (day, status) we already told the user about. Drives "only when it changed". */
+    /** Last (day, status) the morning notification already spent. */
     suspend fun lastNotified(): Pair<String?, String?> {
         val d = context.dataStore.data.first()
         return d[K.LAST_NOTIFIED_DAY] to d[K.LAST_NOTIFIED_STATUS]
@@ -226,6 +228,19 @@ class Prefs(private val context: Context) {
             it[K.LAST_NOTIFIED_DAY] = day
             it[K.LAST_NOTIFIED_STATUS] = status
         }
+    }
+
+    /**
+     * The last status the user was told by *either* notification. Kept apart from
+     * [lastNotified] on purpose: that one answers "did the morning brief go out
+     * today", this one answers "what does the user already know". They were the
+     * same field, so a change alert at 02:00 marked the day as done and the 05:00
+     * morning brief never fired.
+     */
+    suspend fun lastToldStatus(): String? = context.dataStore.data.first()[K.LAST_TOLD_STATUS]
+
+    suspend fun setLastToldStatus(status: String) {
+        context.dataStore.edit { it[K.LAST_TOLD_STATUS] = status }
     }
 
     /**
