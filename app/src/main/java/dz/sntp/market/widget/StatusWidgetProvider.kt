@@ -62,18 +62,30 @@ class StatusWidgetProvider : AppWidgetProvider() {
 
     companion object {
 
-        /** Redraws every placed widget. Called after the app refreshes its cache. */
+        /**
+         * Redraws every placed widget. Called after the app refreshes its cache.
+         *
+         * This updates the views directly instead of broadcasting APPWIDGET_UPDATE
+         * back to ourselves. The broadcast round-trip needs the process to stay
+         * alive long enough to receive it, which is not guaranteed right after a
+         * refresh on a phone that reclaims memory aggressively — the widget would
+         * keep showing the previous state until the launcher's own tick.
+         */
         fun updateAll(context: Context) {
-            val mgr = AppWidgetManager.getInstance(context) ?: return
+            val mgr = AppWidgetManager.getInstance(context)
             val ids = mgr.getAppWidgetIds(
                 ComponentName(context, StatusWidgetProvider::class.java)
             )
             if (ids.isEmpty()) return
-            val intent = Intent(context, StatusWidgetProvider::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+
+            val app = context.applicationContext as? SntpApp ?: return
+            CoroutineScope(Dispatchers.IO).launch {
+                val state = runCatching { app.marketRepository.cachedStateOnly() }.getOrNull()
+                val views = build(context, state)
+                ids.forEach { id ->
+                    runCatching { mgr.updateAppWidget(id, views) }
+                }
             }
-            context.sendBroadcast(intent)
         }
 
         private fun build(context: Context, state: MarketState?): RemoteViews {

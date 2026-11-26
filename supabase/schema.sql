@@ -648,7 +648,6 @@ declare
     v_dev   public.devices%rowtype;
     v_dist  double precision;
     v_age   double precision;
-    v_last  timestamptz;
     v_last_eff timestamptz;
     v_eff   timestamptz;
 begin
