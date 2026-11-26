@@ -79,7 +79,7 @@
     <string name="shop_verified">موثّق</string>
     <string name="shop_claim">تبنّي هذا المحل</string>
     <string name="shop_phone_locked">رقم الهاتف</string>
-    <string name="shop_watch_ad">شاهد إعلاناً لإظهار الرقم</string>
+    <string name="shop_watch_ad">أظهر الرقم</string>
     <string name="shops_empty">لا توجد محلات محفوظة بعد</string>
 
     <!-- History -->

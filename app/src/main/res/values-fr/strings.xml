@@ -73,7 +73,7 @@
     <string name="shop_verified">Vérifié</string>
     <string name="shop_claim">Revendiquer ce commerce</string>
     <string name="shop_phone_locked">Numéro de téléphone</string>
-    <string name="shop_watch_ad">Regarder une pub pour voir le numéro</string>
+    <string name="shop_watch_ad">Afficher le numéro</string>
     <string name="shops_empty">Aucun commerce enregistré</string>
 
     <string name="history_title">Historique des états</string>
