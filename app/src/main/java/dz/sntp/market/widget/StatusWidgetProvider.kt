@@ -29,9 +29,10 @@ import kotlinx.coroutines.launch
  * surface guaranteed to be there at 05:00.
  *
  * It reads the same cached row and applies the same freshness rules as the
- * screen ([MarketRepository.cachedStateOnly]), so it cannot claim to be fresher
- * than the app. It never fetches: a widget that opens a socket on every launcher
- * redraw would drain the battery of exactly the users who need it.
+ * screen ([dz.sntp.market.data.repo.MarketRepository.cachedStateOnly]), so it
+ * cannot claim to be fresher than the app. It never fetches: a widget that opens
+ * a socket on every launcher redraw would drain the battery of exactly the users
+ * who need it.
  */
 class StatusWidgetProvider : AppWidgetProvider() {
 
@@ -79,20 +80,31 @@ class StatusWidgetProvider : AppWidgetProvider() {
             val v = RemoteViews(context.packageName, R.layout.widget_status)
 
             // Nothing cached yet is not "unknown market", it is "the app has never
-            // reached the server on this phone". Saying so is the only honest text.
+            // reached the server on this phone". Saying so is the only honest text —
+            // and no source line at all, because there is no source behind nothing.
             if (state == null) {
-                v.setTextViewText(R.id.widget_status, context.getString(R.string.status_unknown))
+                // "لا بيانات اليوم" is literally true here: there is no data for
+                // today. The detail line says why, which is the actionable part.
+                v.setTextViewText(R.id.widget_status, context.getString(R.string.status_no_data))
                 v.setTextViewText(R.id.widget_detail, context.getString(R.string.widget_no_data))
-                v.setTextViewText(R.id.widget_trust, context.getString(R.string.trust_seed))
+                v.setTextViewText(R.id.widget_trust, "")
                 v.setTextColor(R.id.widget_status, context.getColor(R.color.widget_unknown))
                 v.setTextColor(R.id.widget_trust, context.getColor(R.color.widget_text_secondary))
                 return withClick(context, v)
             }
 
-            val statusText = when (state.status) {
-                MarketStatus.OPEN -> context.getString(R.string.status_open)
-                MarketStatus.CLOSED -> context.getString(R.string.status_closed)
-                MarketStatus.UNKNOWN -> context.getString(R.string.status_unknown)
+            // The app's own rule, so the widget and the card cannot disagree: an
+            // unknown with no hours and no confidence is "no data today", not
+            // "unconfirmed" — the second implies someone looked and could not agree.
+            val noData = state.status == MarketStatus.UNKNOWN &&
+                state.opensAtLocal == null &&
+                state.confidence <= 0.0
+
+            val statusText = when {
+                state.status == MarketStatus.OPEN -> context.getString(R.string.status_open)
+                state.status == MarketStatus.CLOSED -> context.getString(R.string.status_closed)
+                noData -> context.getString(R.string.status_no_data)
+                else -> context.getString(R.string.status_unknown)
             }
             val statusColor = when (state.status) {
                 MarketStatus.OPEN -> R.color.widget_open
@@ -102,9 +114,26 @@ class StatusWidgetProvider : AppWidgetProvider() {
 
             v.setTextViewText(R.id.widget_status, statusText)
             v.setTextColor(R.id.widget_status, context.getColor(statusColor))
-            v.setTextViewText(R.id.widget_detail, detailOf(context, state))
+            // Empty when the status word already said it, so the card does not print
+            // "لا بيانات اليوم" twice on two lines.
+            v.setTextViewText(
+                R.id.widget_detail,
+                if (noData) "" else detailOf(context, state),
+            )
             v.setTextViewText(R.id.widget_trust, trustOf(context, state))
-            v.setTextColor(R.id.widget_trust, context.getColor(R.color.widget_text_secondary))
+            // An unconfirmed row keeps its status word — the app does the same, the
+            // last known state is still the answer — but the caveat must not be the
+            // quietest thing on the card. On the app it is a banner; here the only
+            // lever is colour, so the warning line takes the amber that means
+            // "not confirmed" instead of the grey used for provenance.
+            val stale = state.freshness == Freshness.STALE ||
+                state.freshness == Freshness.OFFLINE
+            v.setTextColor(
+                R.id.widget_trust,
+                context.getColor(
+                    if (stale) R.color.widget_unknown else R.color.widget_text_secondary
+                ),
+            )
             return withClick(context, v)
         }
 
@@ -112,27 +141,39 @@ class StatusWidgetProvider : AppWidgetProvider() {
          * The second line. On a confirmed state it is the closing or opening hour;
          * on an unconfirmed one it is the usual window, labelled as usual. Those
          * two must never look alike — that is the app's entire premise.
+         *
+         * With no hour known the line is left empty rather than filled with a
+         * source label or the legal disclaimer: both would read as if they were
+         * the hour, which is worse than a blank.
+         *
+         * Times are wrapped in LTR isolates for the same reason StatusCard does it:
+         * "07:00 — 13:00" is a left-to-right run inside an Arabic sentence, and
+         * without the isolate bidi reorders it so the two hours swap places — on
+         * the one line the whole product is read for.
          */
         private fun detailOf(context: Context, state: MarketState): String =
             when (state.status) {
                 MarketStatus.OPEN -> state.closesAtLocal
-                    ?.let { context.getString(R.string.closes_at, it) }
-                    ?: context.getString(R.string.trust_traders)
+                    ?.let { context.getString(R.string.closes_at, isolate(it)) }
+                    ?: ""
 
                 MarketStatus.CLOSED -> state.opensAtLocal
-                    ?.let { context.getString(R.string.opens_at, it) }
-                    ?: context.getString(R.string.settings_disclaimer)
+                    ?.let { context.getString(R.string.opens_at, isolate(it)) }
+                    ?: ""
 
                 MarketStatus.UNKNOWN -> {
                     val o = state.opensAtLocal
                     val c = state.closesAtLocal
                     if (o != null && c != null) {
-                        context.getString(R.string.usual_hours, o, c)
+                        context.getString(R.string.usual_hours, isolate(o), isolate(c))
                     } else {
                         context.getString(R.string.status_no_data)
                     }
                 }
             }
+
+        /** Left-to-right isolate around a time so bidi cannot reorder it. */
+        private fun isolate(time: String): String = "\u2066$time\u2069"
 
         /**
          * Third line: where the answer came from, and how old it is when that
@@ -148,9 +189,13 @@ class StatusWidgetProvider : AppWidgetProvider() {
                 Source.TRADERS -> context.getString(R.string.trust_traders)
                 Source.SEED -> context.getString(R.string.trust_seed)
             }
+            // The seed's own hours are never a confirmation, so the widget never
+            // labels them as one, whatever the freshness happens to be.
+            if (state.source == Source.SEED) return source
             val stamp = MarketTime.stamp(state.updatedAtEpochMs)
                 ?: return source
-            return "$source · $stamp"
+            // Same bidi reason as the hours: a bare HH:mm in an Arabic line.
+            return "$source · ${isolate(stamp)}"
         }
 
         private fun withClick(context: Context, v: RemoteViews): RemoteViews {

@@ -275,6 +275,25 @@ create table if not exists public.admin_actions (
 --  المحرّك: وزن كل تصويت + الإجماع
 -- =============================================================================
 
+-- وقت الملاحظة الفعلي لتصويت: ما رآه التاجر، لا متى وصل الخبر.
+--
+-- التصويتات المكتوبة داخل السوق تصل كلها عند عودة الشبكة، فـ server_time هو
+-- وقت الإرسال وقد يكون بعد الملاحظة بساعة أو ساعتين. حد الـ20 دقيقة كان
+-- يقارن client_time بالفعل، لكن كل ما بعده — نافذة الثلاث ساعات، تحلّل الحداثة،
+-- و updated_at — كان يقارن server_time. النتيجة: تصويت عمره 90 دقيقة يصل متأخراً
+-- كان يأخذ وزناً كاملاً ويُوسم كأنه حصل الآن، وهو بالضبط نوع الكذب الذي يمنعه
+-- التطبيق. دالة واحدة كي لا تختلف النسخ.
+--
+-- client_time في المستقبل (ساعة هاتف مظبوطة خطأً) يُقصّ إلى now(): لا يمنح
+-- أحداً أفضلية. وغيابه يعني أننا لا نعرف إلا وقت الوصول، وهو أفضل ما لدينا.
+create or replace function public.observed_at(
+    p_client_time timestamptz,
+    p_server_time timestamptz
+) returns timestamptz
+language sql stable as $$
+    select least(coalesce(p_client_time, p_server_time), now());
+$$;
+
 -- الوزن: القرب × السمعة × الحداثة. صفر خارج نطاق 5 كم.
 create or replace function public.report_weight(
     p_distance double precision,
@@ -457,19 +476,24 @@ begin
     with latest as (
         select distinct on (device_id)
             device_id, status, opens_at, closes_at,
-            server_time, distance_m, weight
+            server_time, distance_m, weight,
+            public.observed_at(client_time, server_time) as seen_at
         from public.reports
         where market_slug = p_slug
           and counted
-          and server_time > now() - interval '3 hours'
-        order by device_id, server_time desc
+          -- The window is on when the trader saw it, not on when the vote
+          -- reached us: a queue flushed at noon must not resurrect last night.
+          and public.observed_at(client_time, server_time) > now() - interval '3 hours'
+        -- Newest by observation. Ordering by arrival let an old queued vote
+        -- outrank a newer live one and become "the latest vote from this device".
+        order by device_id, seen_at desc
     ), aged as (
         select
             status, opens_at, closes_at,
             coalesce(weight, 0) * (case
-                when extract(epoch from (now() - server_time)) / 60.0 <= 45  then 1.0
-                when extract(epoch from (now() - server_time)) / 60.0 <= 90  then 0.7
-                when extract(epoch from (now() - server_time)) / 60.0 <= 180 then 0.4
+                when extract(epoch from (now() - seen_at)) / 60.0 <= 45  then 1.0
+                when extract(epoch from (now() - seen_at)) / 60.0 <= 90  then 0.7
+                when extract(epoch from (now() - seen_at)) / 60.0 <= 180 then 0.4
                 else 0.0
             end) as w
         from latest
@@ -508,8 +532,11 @@ begin
             where market_slug = p_slug
               and counted
               and status = v_status
-              and server_time > now() - interval '3 hours'
-            order by server_time desc
+              and public.observed_at(client_time, server_time) > now() - interval '3 hours'
+            -- The hours must come from the most recently *observed* vote, not the
+            -- most recently delivered one: a queued vote from 06:00 arriving at
+            -- noon would otherwise overwrite the hours a trader reported at 11:45.
+            order by public.observed_at(client_time, server_time) desc
             limit 1;
         end if;
     end if;
@@ -519,13 +546,15 @@ begin
     -- came before this one: now() on every cron pass made a state built from a
     -- three-hour-old vote look seconds old, and tying it to the moment the status
     -- last changed made a market confirmed again ten minutes ago look stale
-    -- because the status had not flipped. The honest value is the newest vote that
-    -- is actually being counted: that is the age of the information on screen.
-    select max(server_time) into v_evidence
+    -- because the status had not flipped. The honest value is when the newest
+    -- counted vote was *observed*: that is the age of the information on screen.
+    -- It used to read server_time, so a vote flushed an hour after the trader
+    -- tapped it arrived looking brand new.
+    select max(public.observed_at(client_time, server_time)) into v_evidence
       from public.reports
      where market_slug = p_slug
        and counted
-       and server_time > now() - interval '3 hours';
+       and public.observed_at(client_time, server_time) > now() - interval '3 hours';
 
     update public.market_state set
         status          = v_status,
@@ -560,7 +589,9 @@ begin
               and r.counted
               and r.status = v_status
               and r.scored_at is null
-              and r.server_time > now() - interval '3 hours'
+              -- Observed time, not arrival: a vote queued inside the market and
+              -- flushed at noon must not be scored as if it were cast then.
+              and public.observed_at(r.client_time, r.server_time) > now() - interval '3 hours'
             returning r.device_id
         )
         update public.devices d set
@@ -578,7 +609,11 @@ begin
               -- 12:30 was right at the time; when the market closes at 14:00 his vote
               -- is still inside the 3-hour window but must not be scored as a dissent,
               -- or the honest early reporter is punished by hindsight alone.
-              and r.server_time > now() - interval '45 minutes'
+              --
+              -- Measured from the observation, not from arrival: the offline queue
+              -- delivers old votes at reconnect, and scoring them by server_time
+              -- punished a trader for the hour his phone had no signal.
+              and public.observed_at(r.client_time, r.server_time) > now() - interval '45 minutes'
             returning r.device_id
         )
         update public.devices d set
@@ -643,12 +678,12 @@ begin
     --
     -- النافذة متماثلة (±20 دقيقة): تصويت قديم يعود من الطابور بعد أن صوّت التاجر
     -- مرة أخرى ليس تكراراً، ولو قارنّاه بالأحدث وحده لاعتُبر كذلك وضاع.
-    v_eff := least(coalesce(new.client_time, now()), now());
+    v_eff := public.observed_at(new.client_time, now());
 
-    select max(least(coalesce(client_time, server_time), now())) into v_last_eff
+    select max(public.observed_at(client_time, server_time)) into v_last_eff
       from public.reports
      where device_id = new.device_id and market_slug = new.market_slug
-       and least(coalesce(client_time, server_time), now())
+       and public.observed_at(client_time, server_time)
            between v_eff - interval '20 minutes' and v_eff + interval '20 minutes';
 
     if v_last_eff is not null then
@@ -886,5 +921,10 @@ select cron.schedule('sntp-daily-snapshot', '50 22 * * *', $$select public.recom
 -- =============================================================================
 select cron.unschedule('sntp-prune') where exists (select 1 from cron.job where jobname = 'sntp-prune');
 select cron.schedule('sntp-prune', '30 2 * * *', $$
-    delete from public.reports where server_time < now() - interval '30 days';
+    -- Measured from the observation, not from arrival: the promise made to users
+    -- and in the privacy policy is that raw votes are deleted 30 days after they
+    -- were recorded. Pruning on server_time kept a vote's coordinates longer
+    -- whenever the phone had been offline.
+    delete from public.reports
+     where public.observed_at(client_time, server_time) < now() - interval '30 days';
 $$);
