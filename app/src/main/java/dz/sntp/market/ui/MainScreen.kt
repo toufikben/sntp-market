@@ -1,11 +1,13 @@
 package dz.sntp.market.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -33,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -57,6 +61,7 @@ import dz.sntp.market.notify.Scheduler
 import dz.sntp.market.ui.theme.SntpColors
 import dz.sntp.market.ui.theme.SntpTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val PRIVACY_URL = "https://toufikben.github.io/sntp-market/privacy.html"
 
@@ -64,6 +69,7 @@ private const val PRIVACY_URL = "https://toufikben.github.io/sntp-market/privacy
 fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     /**
      * The hours to attach to a vote: only ones a trader actually confirmed.
@@ -134,20 +140,64 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         // A refusal must turn the switch off instead of leaving it on over a
-        // worker whose output the system discards.
-        vm.setNotifications(granted)
+        // worker whose output the system discards — and it is recorded as our
+        // gate, not the user's choice, so granting it in system settings later
+        // brings the switch back on by itself.
+        if (granted) vm.setNotifications(true) else vm.gateNotificationsOff()
     }
 
+    /**
+     * The switch, with the permission states Android actually has — not the two
+     * the naive version assumed.
+     *
+     * There are three: never asked, refused once (the dialog will still appear),
+     * and refused for good. In the third state Android answers a request instantly
+     * with "no" and shows nothing, so the switch flipped back on its own and read
+     * as broken. There is exactly one place the answer can be changed then, and the
+     * app has to say so and go there.
+     */
     fun setNotificationsWithPermission(enabled: Boolean) {
+        if (!enabled) {
+            vm.setNotifications(false)
+            return
+        }
+
         val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
                 context, Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
 
-        if (enabled && needsAsk) {
-            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            vm.setNotifications(enabled)
+        if (!needsAsk) {
+            vm.setNotifications(true)
+            return
+        }
+
+        scope.launch {
+            // `shouldShowRequestPermissionRationale` is false both before the first
+            // request and after a permanent refusal; the stored "asked" flag is what
+            // tells those two apart.
+            val canStillAsk = (context as? Activity)
+                ?.let {
+                    ActivityCompat.shouldShowRequestPermissionRationale(
+                        it, Manifest.permission.POST_NOTIFICATIONS
+                    )
+                } ?: true
+
+            if (canStillAsk || vm.permissionNeverAsked()) {
+                vm.markPermissionAsked()
+                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                // Off to system settings. Marked as gated so that coming back with
+                // the permission granted turns the switch on by itself — there is no
+                // callback for a change made in the system's own screen.
+                vm.gateNotificationsOff()
+                openNotificationSettings(context)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.settings_notify_blocked),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
         }
     }
 
@@ -184,8 +234,9 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         } else if (needsAsk) {
             // Already asked before and still not granted: the user said no, or
             // revoked it in system settings. Leaving the switch on would promise a
-            // notification that the system drops, so bring it in line with reality.
-            vm.setNotifications(false)
+            // notification that the system drops, so bring it in line with reality —
+            // and mark it as ours, so granting it in settings later restores it.
+            vm.gateNotificationsOff()
         } else {
             Scheduler.scheduleMorning(context, ui.notifyHour, 0)
         }
@@ -197,7 +248,18 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
     val lifecycle = LocalLifecycleOwner.current
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) vm.refreshIfStale()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                vm.refreshIfStale()
+                // The permission may have been granted while the user was away in
+                // system settings — the one exit from the blocked state. Nothing
+                // tells us when that happens, so it is checked on every return.
+                vm.restoreNotificationsIfGated(
+                    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                        ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                )
+            }
         }
         lifecycle.lifecycle.addObserver(observer)
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
@@ -448,6 +510,24 @@ private fun openUrl(context: android.content.Context, url: String) {
             Intent(Intent.ACTION_VIEW, Uri.parse(url))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
+    }
+}
+
+/**
+ * The notification page for this app. Android 13+ lets the user withdraw the
+ * permission permanently, and from then on the in-app request does nothing; this
+ * screen is the only place it can be granted again.
+ */
+private fun openNotificationSettings(context: android.content.Context) {
+    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+    } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(Uri.parse("package:${context.packageName}"))
+    }
+    runCatching {
+        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }
 

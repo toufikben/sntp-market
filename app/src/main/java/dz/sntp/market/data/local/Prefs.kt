@@ -47,6 +47,13 @@ class Prefs(private val context: Context) {
         val TIER_EXPIRES = longPreferencesKey("entitlement_expires")
         val PROMO_ATTEMPTED = booleanPreferencesKey("promo_attempted")
         val NOTIFY_ASKED = booleanPreferencesKey("notify_asked")
+        /**
+         * True while the app turned the morning switch off *itself* because the
+         * permission was missing. Without it the state is indistinguishable from a
+         * user who switched notifications off on purpose, so returning from system
+         * settings with the permission granted would leave the switch off for good.
+         */
+        val NOTIFY_GATED = booleanPreferencesKey("notify_gated")
         /** The Play purchase token the stored entitlement came from. */
         val PLAY_TOKEN = stringPreferencesKey("play_token")
     }
@@ -208,6 +215,13 @@ class Prefs(private val context: Context) {
 
     suspend fun setNotifyAsked() {
         context.dataStore.edit { it[K.NOTIFY_ASKED] = true }
+    }
+
+    suspend fun notifyGated(): Boolean =
+        context.dataStore.data.map { it[K.NOTIFY_GATED] ?: false }.first()
+
+    suspend fun setNotifyGated(gated: Boolean) {
+        context.dataStore.edit { it[K.NOTIFY_GATED] = gated }
     }
 
     suspend fun setNotifyTime(hour: Int, minute: Int) {

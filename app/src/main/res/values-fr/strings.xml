@@ -89,6 +89,7 @@
     <string name="settings_title">Réglages</string>
     <string name="settings_notify">Notification du matin</string>
     <string name="settings_notify_desc">Chaque matin, même si l\'état n\'a pas changé, plus une alerte s\'il change en cours de journée</string>
+    <string name="settings_notify_blocked">Notifications bloquées pour cette application. Autorisez-les dans les réglages du système</string>
     <string name="settings_notify_time">Heure de la notification</string>
     <string name="settings_language">Langue</string>
     <string name="settings_battery">Empêcher la mise en veille</string>

@@ -97,6 +97,7 @@
     <string name="settings_title">الإعدادات</string>
     <string name="settings_notify">إشعار الصباح</string>
     <string name="settings_notify_desc">إشعار كل صباح حتى لو بقيت الحالة كما هي، وتنبيه إضافي إذا تغيّرت داخل اليوم</string>
+    <string name="settings_notify_blocked">الإشعارات ممنوعة لهذا التطبيق. اسمح بها من إعدادات النظام</string>
     <string name="settings_notify_time">وقت الإشعار</string>
     <string name="settings_language">اللغة</string>
     <string name="settings_battery">منع إيقاف التطبيق</string>

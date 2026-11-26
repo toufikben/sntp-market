@@ -203,6 +203,9 @@ class MainViewModel : ViewModel() {
      */
     fun setNotifications(enabled: Boolean) {
         viewModelScope.launch {
+            // An explicit choice by the user always wins over our own gate: once he
+            // has touched the switch, the app must stop claiming it turned it off.
+            prefs.setNotifyGated(false)
             prefs.setNotifyEnabled(enabled)
             _ui.update { it.copy(notifyEnabled = enabled) }
             if (enabled) {
@@ -210,6 +213,38 @@ class MainViewModel : ViewModel() {
             } else {
                 Scheduler.cancel(app)
             }
+        }
+    }
+
+    /**
+     * Turns the switch off because the system will not deliver anything, and marks
+     * it as our decision rather than the user's. The distinction is the whole point:
+     * silence from this method is reversible the moment the permission comes back,
+     * silence from the user is not.
+     */
+    fun gateNotificationsOff() {
+        viewModelScope.launch {
+            prefs.setNotifyEnabled(false)
+            prefs.setNotifyGated(true)
+            _ui.update { it.copy(notifyEnabled = false) }
+            Scheduler.cancel(app)
+        }
+    }
+
+    /**
+     * Re-enables the morning notification if — and only if — the app, not the user,
+     * had switched it off and the permission is now granted. Called when the screen
+     * regains focus, because the way back is through system settings and there is no
+     * callback for "the user allowed it there".
+     */
+    fun restoreNotificationsIfGated(canPost: Boolean) {
+        if (!canPost) return
+        viewModelScope.launch {
+            if (!prefs.notifyGated()) return@launch
+            prefs.setNotifyGated(false)
+            prefs.setNotifyEnabled(true)
+            _ui.update { it.copy(notifyEnabled = true) }
+            Scheduler.scheduleMorning(app, _ui.value.notifyHour, 0)
         }
     }
 
