@@ -568,7 +568,15 @@ begin
         updated_at      = coalesce(v_evidence, updated_at)
     where market_slug = p_slug;
 
-    perform public.snapshot_day(p_slug, v_status, v_opens, v_closes, v_conf, 'traders');
+    -- A day nobody reported on is not a day the traders disagreed about. This
+    -- function runs from cron every five minutes, so with no reports v_status is
+    -- 'unknown' and snapshot_day's unknown branch still wrote a row for today:
+    -- the calendar then showed "unconfirmed" for days the app had simply never
+    -- heard about, and the honest "لا سجل بعد" state became unreachable.
+    -- An unknown verdict is only worth recording when someone actually voted.
+    if v_status <> 'unknown' or v_total_w > 0 then
+        perform public.snapshot_day(p_slug, v_status, v_opens, v_closes, v_conf, 'traders');
+    end if;
 
     -- Reputation: a vote that matched the consensus raises the device; a lone
     -- dissent lowers it. Until now this column kept its default forever while the
