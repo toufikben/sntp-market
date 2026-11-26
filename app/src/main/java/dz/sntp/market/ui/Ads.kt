@@ -66,6 +66,15 @@ fun SponsorSlot(sponsor: Sponsor?, modifier: Modifier = Modifier) {
                 Text(stringResource(R.string.ad_sponsor_contact), color = SntpColors.DeepGreen)
             }
         }
+        // A sponsor who paid for a link had a name nobody could tap: `url` is a
+        // column on the table and a field on the model, and the card only ever
+        // rendered the phone. Only http(s) is opened, so a stored value cannot
+        // hand the launcher an arbitrary scheme.
+        sponsor.url?.takeIf { it.startsWith("http://") || it.startsWith("https://") }?.let { link ->
+            TextButton(onClick = { runCatching { uri.openUri(link) } }) {
+                Text(stringResource(R.string.ad_sponsor_visit), color = SntpColors.DeepGreen)
+            }
+        }
     }
 }
 

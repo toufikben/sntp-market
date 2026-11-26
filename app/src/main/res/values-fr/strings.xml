@@ -137,6 +137,7 @@
     <string name="ad_rewarded_body">Afficher la carte du sponsor révèle le numéro, et il reste visible sur ce téléphone. Gratuit pour les abonnés Pro.</string>
     <string name="ad_continue">Continuer</string>
     <string name="ad_sponsor_contact">Appeler</string>
+    <string name="ad_sponsor_visit">Visiter</string>
 
     <string name="ok">OK</string>
     <string name="cancel">Annuler</string>

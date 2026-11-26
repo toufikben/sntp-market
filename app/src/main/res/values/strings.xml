@@ -146,6 +146,7 @@
     <string name="ad_rewarded_body">مشاهدة بطاقة الراعي تُظهر رقم المحل، ويبقى ظاهراً على هذا الهاتف. الأرقام مجانية لمشتركي Pro.</string>
     <string name="ad_continue">متابعة</string>
     <string name="ad_sponsor_contact">اتصال</string>
+    <string name="ad_sponsor_visit">زيارة</string>
 
     <!-- Common -->
     <string name="ok">حسناً</string>

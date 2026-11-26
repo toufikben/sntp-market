@@ -333,7 +333,6 @@ class MainViewModel : ViewModel() {
         _ui.update { it.copy(buyError = error != null) }
     }
 
-    /** One rewarded card unlocks one shop's number for this session. */
     /**
      * Remember the unlock on disk, not only in memory. The dialog says the number
      * is now shown; it used to be forgotten on the next launch, so the user paid
