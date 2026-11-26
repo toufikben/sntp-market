@@ -90,7 +90,7 @@
     <!-- Settings -->
     <string name="settings_title">الإعدادات</string>
     <string name="settings_notify">إشعار الصباح</string>
-    <string name="settings_notify_desc">إشعار واحد صباحاً، وفقط إذا تغيّرت الحالة</string>
+    <string name="settings_notify_desc">إشعار واحد كل صباح، حتى لو بقيت الحالة كما هي</string>
     <string name="settings_notify_time">وقت الإشعار</string>
     <string name="settings_language">اللغة</string>
     <string name="settings_battery">منع إيقاف التطبيق</string>

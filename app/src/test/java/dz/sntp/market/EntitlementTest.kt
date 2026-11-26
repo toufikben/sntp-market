@@ -98,8 +98,13 @@ class EntitlementTest {
         assertTrue(replay.isExpired(now + 33L * 24 * 60 * 60 * 1000L))
     }
 
+    /**
+     * Play keeps one token for the whole life of a subscription and exposes no
+     * expiry on the client, so a renewal is invisible to the device: the token
+     * repeats and the date must be extended from the period it extends.
+     */
     @Test
-    fun `a real renewal with a new token moves the expiry forward`() {
+    fun `a renewal with the same token extends from the previous expiry`() {
         val now = 1_000_000_000_000L
         val first = Entitlement.fromSku("pro_monthly", now = now, token = "tok-A")
 
@@ -108,11 +113,63 @@ class EntitlementTest {
             now = now + 31L * 24 * 60 * 60 * 1000L,
             previous = first,
             previousToken = "tok-A",
+            token = "tok-A",
+        )
+
+        // 32 days after the period end, not 32 days after today: the grace day
+        // must not be re-spent on every cycle.
+        assertEquals(first.expiresAtMs + 32L * 24 * 60 * 60 * 1000L, renewed.expiresAtMs)
+    }
+
+    /**
+     * The bug this guards: anchoring each renewal on `now` re-spent the grace day
+     * every month, so the date drifted a couple of days further ahead each cycle.
+     * Two years of renewals handed out roughly two free months.
+     */
+    @Test
+    fun `the grace day does not compound across renewals`() {
+        var now = 1_000_000_000_000L
+        var e = Entitlement.fromSku("pro_monthly", now = now, token = "tok-A")
+        val firstExpiry = e.expiresAtMs
+
+        // Two years of monthly renewals, each checked the day after the stored
+        // date lapses — exactly when a real subscriber opens the app.
+        repeat(24) {
+            now = e.expiresAtMs + 24L * 60 * 60 * 1000L
+            e = Entitlement.fromSku(
+                "pro_monthly",
+                now = now,
+                previous = e,
+                previousToken = "tok-A",
+                token = "tok-A",
+            )
+        }
+
+        // 24 renewals of 32 days from the original expiry: the grace stays one
+        // day per period instead of growing with the number of renewals.
+        val expected = firstExpiry + 24 * 32L * 24 * 60 * 60 * 1000L
+        assertEquals(expected, e.expiresAtMs)
+        // And the drift never exceeded a single period.
+        assertTrue(e.expiresAtMs - now < 33L * 24 * 60 * 60 * 1000L)
+    }
+
+    /** An upgrade or downgrade mints a new token and starts a new period. */
+    @Test
+    fun `a new token starts a new period`() {
+        val now = 1_000_000_000_000L
+        val monthly = Entitlement.fromSku("pro_monthly", now = now, token = "tok-A")
+
+        val yearly = Entitlement.fromSku(
+            "pro_yearly",
+            now = now + 5L * 24 * 60 * 60 * 1000L,
+            previous = monthly,
+            previousToken = "tok-A",
             token = "tok-B",
         )
 
-        assertTrue(renewed.expiresAtMs > first.expiresAtMs)
-        assertFalse(renewed.isExpired(now + 50L * 24 * 60 * 60 * 1000L))
+        assertEquals(Tier.PRO, yearly.tier)
+        assertTrue(yearly.expiresAtMs > monthly.expiresAtMs)
+        assertFalse(yearly.isExpired(now + 300L * 24 * 60 * 60 * 1000L))
     }
 
     /**
@@ -137,5 +194,29 @@ class EntitlementTest {
         assertTrue(revived.expiresAtMs > now)
         // And it lapses again: this is not a lifetime grant.
         assertTrue(revived.isExpired(now + 33L * 24 * 60 * 60 * 1000L))
+    }
+
+    /**
+     * A device that stored no token (an older install) must still be treated as
+     * continuing. Falling through to the from-today branch is the compounding
+     * path, so a null token cannot be allowed to mean "new subscription".
+     */
+    @Test
+    fun `a missing token still extends rather than restarting the period`() {
+        val now = 1_000_000_000_000L
+        val first = Entitlement(Tier.PRO, "play", now + 5L * 24 * 60 * 60 * 1000L)
+
+        val next = Entitlement.fromSku(
+            "pro_monthly",
+            now = now + 6L * 24 * 60 * 60 * 1000L,
+            previous = first,
+            previousToken = null,
+            token = "tok-A",
+        )
+
+        assertEquals(
+            first.expiresAtMs + 32L * 24 * 60 * 60 * 1000L,
+            next.expiresAtMs,
+        )
     }
 }

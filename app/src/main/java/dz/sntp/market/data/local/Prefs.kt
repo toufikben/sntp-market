@@ -77,21 +77,31 @@ class Prefs(private val context: Context) {
         }
     }
 
+    /**
+     * Writes the tier and the Play token in one edit. Two separate edits left a
+     * window where the process could die between them and leave a new billing
+     * period recorded against the previous token, which is exactly the pair
+     * [Entitlement.fromSku] uses to decide whether a period is continuing.
+     */
+    suspend fun setPlayEntitlement(e: Entitlement, token: String?) {
+        context.dataStore.edit { d ->
+            d[K.TIER] = e.tier.name.lowercase()
+            d[K.TIER_SOURCE] = e.source
+            d[K.TIER_EXPIRES] = e.expiresAtMs
+            if (token == null) d.remove(K.PLAY_TOKEN) else d[K.PLAY_TOKEN] = token
+        }
+    }
+
     suspend fun promoAttempted(): Boolean =
         context.dataStore.data.map { it[K.PROMO_ATTEMPTED] ?: false }.first()
 
     /**
      * The Play token behind the stored entitlement. Kept separately from the tier
-     * because it is the only way to tell a real renewal from restore() replaying
-     * the purchase we already have.
+     * because it is the only thing that tells an upgrade (a new token, a new
+     * period) from Play reporting the same subscription again.
      */
     suspend fun playToken(): String? = context.dataStore.data.first()[K.PLAY_TOKEN]
 
-    suspend fun setPlayToken(token: String?) {
-        context.dataStore.edit { d ->
-            if (token == null) d.remove(K.PLAY_TOKEN) else d[K.PLAY_TOKEN] = token
-        }
-    }
     suspend fun setPromoAttempted() {
         context.dataStore.edit { it[K.PROMO_ATTEMPTED] = true }
     }

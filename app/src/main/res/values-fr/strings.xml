@@ -82,7 +82,7 @@
 
     <string name="settings_title">Réglages</string>
     <string name="settings_notify">Notification du matin</string>
-    <string name="settings_notify_desc">Une seule, et uniquement si l\'état a changé</string>
+    <string name="settings_notify_desc">Une seule, chaque matin, même si l\'état n\'a pas changé</string>
     <string name="settings_notify_time">Heure de la notification</string>
     <string name="settings_language">Langue</string>
     <string name="settings_battery">Empêcher la mise en veille</string>

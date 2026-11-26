@@ -44,7 +44,8 @@ class EntitlementRepository(
         when (val existing = ask("my_entitlement", device)) {
             is Answer.Found -> {
                 save(existing.e)
-                return@withContext existing.e
+                // What is actually stored now — save() may have refused the write.
+                return@withContext prefs.entitlement().effective()
             }
             // No server session or a transport failure. Trying the promo now would
             // burn the device's single attempt on a connection problem, so wait.
@@ -62,7 +63,7 @@ class EntitlementRepository(
                 // Only now is the attempt really spent: the server answered.
                 prefs.setPromoAttempted()
                 save(claimed.e)
-                claimed.e
+                prefs.entitlement().effective()
             }
             Answer.Empty -> {
                 // Answered, and there is no row: the 500 seats are gone.
@@ -83,8 +84,8 @@ class EntitlementRepository(
                 previousToken = prefs.playToken(),
                 token = token,
             )
-            prefs.setEntitlement(e)
-            prefs.setPlayToken(token)
+            // One edit: a new period must never be recorded under the old token.
+            prefs.setPlayEntitlement(e, token)
             e
         }
 
@@ -116,7 +117,16 @@ class EntitlementRepository(
     private fun parseTime(iso: String?): Long = IsoTime.toEpochMs(iso)
 
     private suspend fun save(e: Entitlement) {
-        if (e.tier != Tier.FREE) prefs.setEntitlement(e)
+        if (e.tier == Tier.FREE) return
+        // A live Play subscription outranks anything the server can say. The
+        // server has no verified Play row at all (verification is not wired up),
+        // so what it answers for a paying device is either an older promo grant or
+        // an admin one. Letting that overwrite the local Play row dropped the
+        // paying relationship from the device while the charge kept coming, and
+        // the next restore() then re-dated the period from scratch.
+        val local = prefs.entitlement()
+        if (local.source == "play" && !local.isExpired()) return
+        prefs.setEntitlement(e)
     }
 }
 
