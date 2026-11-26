@@ -8,9 +8,26 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="com.android.vending.BILLING" />
 
+    <!--
+      No cloud backup, deliberately.
+
+      Everything this app owns is either an identity or a paid right, and both are
+      backed up by default: `device_id.txt` sits in filesDir, and DataStore holds
+      the entitlement tier, the Play SKU and the shop unlocks. Auto-backup would
+      restore all of it onto a new phone, which means
+
+        · a lapsed or refunded subscriber gets Pro back for free by installing on
+          a fresh device, and
+        · one physical person can vote from many devices, because the restored
+          device_id is the identity the server trusts for reputation and for the
+          one-vote-per-20-minutes rule.
+
+      There is nothing here worth backing up: the market state, week, shops and
+      history are all re-fetched on first launch, and the settings are one screen.
+    -->
     <application
         android:name=".SntpApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@drawable/ic_launcher"
