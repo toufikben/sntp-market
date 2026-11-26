@@ -87,6 +87,7 @@
     <string name="shop_phone_locked">رقم الهاتف</string>
     <string name="shop_watch_ad">أظهر الرقم</string>
     <string name="shops_empty">لا توجد محلات محفوظة بعد</string>
+    <string name="shops_no_match">لا محل يطابق «%1$s»</string>
 
     <!-- History -->
     <string name="history_title">سجل الحالات</string>
@@ -142,7 +143,7 @@
     <string name="ad_placeholder_title">مساحة إعلانية</string>
     <string name="ad_placeholder_body">أعلن عن محلك أو خدمتك لتجار سوق سانتيبي.</string>
     <string name="ad_rewarded_title">راعٍ هذه المساحة</string>
-    <string name="ad_rewarded_body">مشاهدة بطاقة الراعي تُظهر رقم المحل. الأرقام مجانية لمشتركي Pro.</string>
+    <string name="ad_rewarded_body">مشاهدة بطاقة الراعي تُظهر رقم المحل، ويبقى ظاهراً على هذا الهاتف. الأرقام مجانية لمشتركي Pro.</string>
     <string name="ad_continue">متابعة</string>
     <string name="ad_sponsor_contact">اتصال</string>
 

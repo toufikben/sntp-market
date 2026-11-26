@@ -58,6 +58,12 @@ class Prefs(private val context: Context) {
         val NOTIFY_GATED = booleanPreferencesKey("notify_gated")
         /** The Play purchase token the stored entitlement came from. */
         val PLAY_TOKEN = stringPreferencesKey("play_token")
+        /**
+         * Shop ids whose phone number this device already unlocked by watching the
+         * rewarded slot. Kept here rather than in memory: the unlock is what the
+         * user paid attention for, and it vanished on every relaunch.
+         */
+        val UNLOCKED_SHOPS = androidx.datastore.preferences.core.stringSetPreferencesKey("unlocked_shops")
     }
 
     // ---------------------------------------------------------------- theme
@@ -201,6 +207,16 @@ class Prefs(private val context: Context) {
 
     suspend fun saveCachedHistory(json: String) {
         context.dataStore.edit { it[K.CACHED_HISTORY] = json }
+    }
+
+    // --------------------------------------------------------------- shops
+
+    /** Shop ids unlocked on this device; survives a relaunch. */
+    suspend fun unlockedShops(): Set<String> =
+        context.dataStore.data.map { it[K.UNLOCKED_SHOPS] ?: emptySet() }.first()
+
+    suspend fun unlockShop(id: String) {
+        context.dataStore.edit { it[K.UNLOCKED_SHOPS] = (it[K.UNLOCKED_SHOPS] ?: emptySet()) + id }
     }
 
     // -------------------------------------------------------- notifications

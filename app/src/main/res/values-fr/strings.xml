@@ -81,6 +81,7 @@
     <string name="shop_phone_locked">Numéro de téléphone</string>
     <string name="shop_watch_ad">Afficher le numéro</string>
     <string name="shops_empty">Aucun commerce enregistré</string>
+    <string name="shops_no_match">Aucun commerce ne correspond à « %1$s »</string>
 
     <string name="history_title">Historique des états</string>
     <string name="history_empty">Pas encore d\'historique</string>
@@ -133,7 +134,7 @@
     <string name="ad_placeholder_title">Espace publicitaire</string>
     <string name="ad_placeholder_body">Annoncez votre boutique aux commerçants du marché SNTP.</string>
     <string name="ad_rewarded_title">Sponsor de cet espace</string>
-    <string name="ad_rewarded_body">Afficher la carte du sponsor révèle le numéro. Gratuit pour les abonnés Pro.</string>
+    <string name="ad_rewarded_body">Afficher la carte du sponsor révèle le numéro, et il reste visible sur ce téléphone. Gratuit pour les abonnés Pro.</string>
     <string name="ad_continue">Continuer</string>
     <string name="ad_sponsor_contact">Appeler</string>
 

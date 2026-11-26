@@ -83,8 +83,16 @@ fun ShopsSection(
     Spacer(Modifier.height(12.dp))
 
     if (filtered.isEmpty()) {
+        // An empty directory and a search that matched nothing are two different
+        // facts. The tab printed "لا توجد محلات محفوظة بعد" — no shops saved yet —
+        // over a full directory whenever a typo missed, telling the trader the
+        // market has no shops instead of that the word was wrong.
         Text(
-            text = stringResource(R.string.shops_empty),
+            text = if (query.isBlank()) {
+                stringResource(R.string.shops_empty)
+            } else {
+                stringResource(R.string.shops_no_match, query.trim())
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = SntpColors.TextSecondary,
         )

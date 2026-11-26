@@ -70,8 +70,9 @@ fun SponsorSlot(sponsor: Sponsor?, modifier: Modifier = Modifier) {
 }
 
 /**
- * Stands where a rewarded ad would be. Watching it unlocks one shop's number
- * for this session; Pro skips it. Kept as a card, not a fake countdown.
+ * Stands where a rewarded ad would be. Watching it unlocks one shop's number,
+ * and the unlock is written to disk so it is still there after a relaunch — the
+ * user spent attention on it. Pro skips it. Kept as a card, not a fake countdown.
  */
 @Composable
 fun RewardedDialog(

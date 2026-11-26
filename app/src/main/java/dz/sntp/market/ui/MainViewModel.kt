@@ -98,6 +98,7 @@ class MainViewModel : ViewModel() {
                     themeMode = prefs.themeMode(),
                     tier = stored.tier,
                     isPro = stored.isPro,
+                    unlockedShops = prefs.unlockedShops(),
                 )
             }
             // The server may know better (promo grant made on another install).
@@ -327,7 +328,15 @@ class MainViewModel : ViewModel() {
     }
 
     /** One rewarded card unlocks one shop's number for this session. */
-    fun unlockShop(id: String) = _ui.update { it.copy(unlockedShops = it.unlockedShops + id) }
+    /**
+     * Remember the unlock on disk, not only in memory. The dialog says the number
+     * is now shown; it used to be forgotten on the next launch, so the user paid
+     * attention for a number that came back locked.
+     */
+    fun unlockShop(id: String) {
+        _ui.update { it.copy(unlockedShops = it.unlockedShops + id) }
+        viewModelScope.launch { runCatching { prefs.unlockShop(id) } }
+    }
 
     override fun onCleared() {
         billing.close()
