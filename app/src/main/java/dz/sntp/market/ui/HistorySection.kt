@@ -22,11 +22,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dz.sntp.market.R
@@ -84,10 +86,16 @@ fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
         )
         // Only drawn when there is somewhere to go, so a market with one month of
         // history does not show two dead arrows.
+        //
+        // The glyph is chosen by layout direction, not hardcoded: in an RTL layout
+        // "older" is to the right, and a fixed "‹" pointed the Arabic user at the
+        // wrong month. The description carries the meaning for a screen reader,
+        // because a bare chevron has none.
+        val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
         if (canGoOlder) {
             TextButton(onClick = { shownMonth++ }) {
                 Text(
-                    text = "\u2039",
+                    text = if (rtl) "\u203a" else "\u2039",
                     style = MaterialTheme.typography.titleLarge,
                     color = SntpColors.DeepGreen,
                     fontWeight = FontWeight.Bold,
@@ -100,7 +108,7 @@ fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
         if (canGoNewer) {
             TextButton(onClick = { shownMonth-- }) {
                 Text(
-                    text = "\u203a",
+                    text = if (rtl) "\u2039" else "\u203a",
                     style = MaterialTheme.typography.titleLarge,
                     color = SntpColors.DeepGreen,
                     fontWeight = FontWeight.Bold,
