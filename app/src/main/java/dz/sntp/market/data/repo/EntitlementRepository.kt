@@ -102,16 +102,23 @@ class EntitlementRepository(
         val result = market.rpc(fn, body)
 
         val raw = result.getOrElse { return Answer.Unreachable }
+        // A body we cannot parse is not an answer. It used to fall through to
+        // Empty, and for `claim_promo` Empty means "the 500 seats are gone" — so a
+        // truncated or HTML error page burned the device's single promo attempt on
+        // a response that never said anything about seats. Unreachable is the
+        // honest classification: nothing was decided.
+        val element = runCatching { json.parseToJsonElement(raw) }.getOrNull()
+            ?: return Answer.Unreachable
+        val row = runCatching { element.jsonArray.firstOrNull()?.jsonObject }.getOrNull()
+            ?: return Answer.Empty
         return runCatching {
-            val row = json.parseToJsonElement(raw).jsonArray.firstOrNull()?.jsonObject
-                ?: return@runCatching Answer.Empty
             val e = Entitlement.fromServer(
                 tier = row["tier"]?.jsonPrimitive?.text(),
                 source = row["source"]?.jsonPrimitive?.text(),
                 expiresAtMs = parseTime(row["expires_at"]?.jsonPrimitive?.text()),
             )
             if (e.tier == Tier.FREE) Answer.Empty else Answer.Found(e)
-        }.getOrDefault(Answer.Empty)
+        }.getOrElse { Answer.Unreachable }
     }
 
     private fun parseTime(iso: String?): Long = IsoTime.toEpochMs(iso)
