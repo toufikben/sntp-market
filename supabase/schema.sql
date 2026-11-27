@@ -803,7 +803,13 @@ drop policy if exists read_shops    on public.shops;
 create policy read_shops    on public.shops           for select using (active);
 
 drop policy if exists read_sponsors on public.sponsors;
-create policy read_sponsors on public.sponsors        for select using (active and ends_at > now());
+-- A placement is live only between the dates that were sold. `starts_at` was
+-- missing from this check, so a sponsor booked for next month appeared on the
+-- screen today: the client pays for one month and gets two, and the row that
+-- replaced him is shown alongside his own — on a slot sold as exclusive.
+create policy read_sponsors on public.sponsors        for select using (
+    active and starts_at <= now() and ends_at > now()
+);
 
 drop policy if exists read_products on public.products;
 create policy read_products on public.products        for select using (active);
