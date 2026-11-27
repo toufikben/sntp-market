@@ -44,14 +44,27 @@ class SupabaseClient(
         }
     }
 
-    fun post(path: String, bodyJson: String, bearer: String? = null): Result<String> = runCatching {
+    fun post(
+        path: String,
+        bodyJson: String,
+        bearer: String? = null,
+        /**
+         * `return=representation` asks Postgres for the inserted row back, which
+         * under RLS means the row must also pass the table's SELECT policy.
+         * `reports` deliberately has no SELECT policy — an insert-only table is
+         * what stops anyone listing other traders' votes with the anon key — so
+         * asking for the representation requests something the caller is not
+         * allowed to read. `return=minimal` is what an insert-only table wants.
+         */
+        prefer: String = "return=representation",
+    ): Result<String> = runCatching {
         val req = Request.Builder()
             .url(restUrl(path))
             .post(bodyJson.toRequestBody(json))
             .header("apikey", anonKey)
             .header("Authorization", "Bearer ${bearer ?: anonKey}")
             .header("Content-Type", "application/json")
-            .header("Prefer", "return=representation")
+            .header("Prefer", prefer)
             .build()
         http.newCall(req).execute().use { resp ->
             val body = resp.body?.string().orEmpty()

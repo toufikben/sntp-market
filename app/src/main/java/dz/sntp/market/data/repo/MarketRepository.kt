@@ -311,7 +311,9 @@ class MarketRepository(
     // --------------------------------------------------------------- reports
 
     suspend fun postReport(payload: String): Result<String> = withContext(Dispatchers.IO) {
-        client.post("reports", payload)
+        // reports is insert-only: no SELECT policy, so asking for the inserted row
+        // back is a read the caller may not perform.
+        client.post("reports", payload, prefer = "return=minimal")
     }
 
     /** PostgREST RPC, used by the entitlement functions. */
