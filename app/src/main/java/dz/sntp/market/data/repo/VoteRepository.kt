@@ -81,7 +81,14 @@ class VoteRepository(
 
     fun proximityTo(location: Location?): Proximity {
         val loc = location ?: return Proximity.UNKNOWN
-        val d = Geo.distanceMeters(loc.latitude, loc.longitude, SntpSeed.LAT, SntpSeed.LNG)
+        // Distance plus the fix's own uncertainty, which is the same figure the
+        // server weights the vote with. Without it the two disagreed: a cell-tower
+        // fix 200 m away but accurate to 3 km passed the client's check, was
+        // posted, and the server then gave it weight 0 and dropped it as
+        // uncounted — the trader was told his vote was accepted and nothing was
+        // ever recorded. Refusing here says the same thing the server would.
+        val d = Geo.distanceMeters(loc.latitude, loc.longitude, SntpSeed.LAT, SntpSeed.LNG) +
+            loc.accuracy.toDouble()
         return when {
             d <= SntpSeed.VOTE_RADIUS_M -> Proximity.INSIDE
             d <= SntpSeed.FAR_RADIUS_M -> Proximity.NEAR

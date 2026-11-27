@@ -85,6 +85,17 @@ class VoteWeightTest {
     }
 
     @Test
+    fun `a precise fix at the edge counts, an uncertain one does not`() {
+        // The weight is computed from distance + the fix's own uncertainty, which
+        // is what the server does. A cell-tower fix 200 m away and accurate to 3 km
+        // is not evidence that the trader is inside the market.
+        val precise = Geo.proximityWeight(200.0 + 10.0, voteRadius, farRadius)
+        val vague = Geo.proximityWeight(200.0 + 3000.0, voteRadius, farRadius)
+        assertEquals(1.0, precise, 0.0001)
+        assertEquals(0.0, vague, 0.0001)
+    }
+
+    @Test
     fun `zero distance to itself`() {
         val d = Geo.distanceMeters(36.724663, 3.222052, 36.724663, 3.222052)
         assertEquals(0.0, d, 0.5)

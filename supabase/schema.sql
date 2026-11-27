@@ -791,6 +791,12 @@ begin
     end if;
 
     -- المسافة
+    --
+    -- الوزن يستخدم المسافة *الأسوأ حالة*: مسافة الجهاز + هامش الخطأ الذي أبلغ عنه
+    -- نظام الموقع. `accuracy_m` كان يُحفظ ولا يُقرأ أبداً، فتصويت من برج شبكة خطؤه
+    -- ثلاثة كيلومترات داخل نطاق 1200 م أخذ وزناً كاملاً كأنه قياس دقيق — وهو
+    -- بالضبط ما يمنعه التطبيق: من لا يعرف أين هو لا يعرف هل السوق مفتوح.
+    -- المسافة الخام تبقى محفوظة للتشخيص.
     if new.lat is not null and new.lng is not null then
         v_dist := public.distance_m(new.lat, new.lng, m.lat, m.lng);
         new.distance_m := round(v_dist::numeric, 1);
@@ -799,7 +805,10 @@ begin
     end if;
 
     new.weight := public.report_weight(
-        new.distance_m,
+        case
+            when new.distance_m is null then null
+            else new.distance_m + coalesce(new.accuracy_m, 0)
+        end,
         v_dev.reputation,
         0,
         m.vote_radius_m,
