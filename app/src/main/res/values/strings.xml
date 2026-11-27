@@ -95,6 +95,9 @@
     <string name="history_prev_month">الشهر السابق</string>
     <string name="history_next_month">الشهر التالي</string>
     <string name="history_month_empty">لا سجل لهذا الشهر</string>
+    <!-- Screen-reader text for one calendar square: date, then what happened. -->
+    <string name="history_cell_label">%1$s — %2$s</string>
+    <string name="history_cell_no_record">لا سجل</string>
 
     <!-- Settings -->
     <string name="settings_title">الإعدادات</string>

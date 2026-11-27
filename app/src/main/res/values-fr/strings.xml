@@ -88,6 +88,9 @@
     <string name="history_prev_month">Mois précédent</string>
     <string name="history_next_month">Mois suivant</string>
     <string name="history_month_empty">Aucun historique pour ce mois</string>
+    <!-- Texte lu par le lecteur d'écran pour une case : la date, puis l'état. -->
+    <string name="history_cell_label">%1$s — %2$s</string>
+    <string name="history_cell_no_record">aucun relevé</string>
 
     <string name="settings_title">Réglages</string>
     <string name="settings_notify">Notification du matin</string>

@@ -202,12 +202,30 @@ private fun DayCell(date: LocalDate, status: String?, isToday: Boolean) {
         "unknown" -> SntpColors.Unknown
         else -> SntpColors.TextSecondary
     }
+    // The grid is the only screen in the app made of nothing but bare numbers, so a
+    // screen reader walked through it announcing "14", "15", "16" with no month and
+    // no state — the calendar conveyed nothing at all. Each cell now carries the
+    // date and what happened on it; an empty cell says it has no record, which is a
+    // fact about the market and not the same as "closed".
+    val stateLabel = when (status) {
+        "open" -> stringResource(R.string.status_open)
+        "closed" -> stringResource(R.string.status_closed)
+        "unknown" -> stringResource(R.string.status_unknown)
+        else -> stringResource(R.string.history_cell_no_record)
+    }
+    val label = stringResource(
+        R.string.history_cell_label,
+        MarketTime.dateLabel(date, displayLocale()),
+        stateLabel,
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(RoundedCornerShape(8.dp))
-            .background(bg),
+            .background(bg)
+            .semantics(mergeDescendants = true) { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         Text(
