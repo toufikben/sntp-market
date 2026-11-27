@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Same window, but the status-bar icons are light: on the dark background the
+      light-theme `windowLightStatusBar=true` painted near-black icons on a
+      near-black bar for the first frame, before Compose corrects them.
+    -->
+    <style name="Theme.Sntp" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/window_bg</item>
+    </style>
+</resources>
