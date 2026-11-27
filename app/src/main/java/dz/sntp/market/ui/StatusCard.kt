@@ -142,7 +142,18 @@ fun DetailRows(ui: UiState) {
         )
     }
 
-    reasonText(s)?.let { InfoRow(stringResource(R.string.reason_label), it) }
+    // The reason, if a trader gave one. A seed row carries the *timetable's* remark
+    // ("إغلاق شبه كامل"), and printing it under «السبب» — "the reason" — claimed
+    // someone had reported why, on a row where nobody reported anything. Same
+    // words, a different claim, and this screen exists to keep those apart.
+    reasonText(s)?.let {
+        InfoRow(
+            label = stringResource(
+                if (s.source == Source.SEED) R.string.usual_note_label else R.string.reason_label
+            ),
+            value = it,
+        )
+    }
 
     InfoRow(
         label = stringResource(R.string.confidence_label),

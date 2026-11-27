@@ -22,6 +22,13 @@
     -->
     <string name="usual_opens_at">المعتاد: يفتح %1$s</string>
     <string name="reason_label">السبب</string>
+    <!--
+      The same note on a seed row is not a reason. The seed carries the timetable's
+      own remark ("إغلاق شبه كامل", "التوقيت يتغيّر كثيراً"), and the card printed it
+      under «السبب» — "the reason" — as if a trader had given one, on a row where
+      nobody had reported anything at all.
+    -->
+    <string name="usual_note_label">ملاحظة معتادة</string>
     <string name="confidence_label">نسبة الموثوقية</string>
     <string name="confirmers_count">%1$d تاجراً أكّدوا</string>
     <string name="updated_at">آخر تحديث %1$s</string>
