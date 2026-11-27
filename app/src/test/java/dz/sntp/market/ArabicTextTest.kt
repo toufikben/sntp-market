@@ -29,7 +29,8 @@ class ArabicTextTest {
 
     @Test
     fun `ta marbuta and ha are the same letter`() {
-        assertTrue(ArabicText.matches("محلات SNTP للملابس الرجالية", "محله"))
+        assertTrue(ArabicText.matches("شركة النور", "شركه"))
+        assertTrue(ArabicText.matches("مكتبة", "مكتبه"))
     }
 
     @Test
