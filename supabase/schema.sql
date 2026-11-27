@@ -685,13 +685,19 @@ begin
     --
     -- النافذة متماثلة (±20 دقيقة): تصويت قديم يعود من الطابور بعد أن صوّت التاجر
     -- مرة أخرى ليس تكراراً، ولو قارنّاه بالأحدث وحده لاعتُبر كذلك وضاع.
+    --
+    -- الحدّان مفتوحان (>) و(<) لا مغلقان: العميل يسمح بالتصويت عند 20 دقيقة
+    -- تماماً، و«between» يشمل الطرفين، فكان التاجر الذي ينتظر عشرين دقيقة بدقة
+    -- يُرفض من السيرفر بعد أن سمح له التطبيق — رفض لا يستطيع فهمه ولا تجنّبه.
     v_eff := public.observed_at(new.client_time, now());
 
     select max(public.observed_at(client_time, server_time)) into v_last_eff
       from public.reports
      where device_id = new.device_id and market_slug = new.market_slug
        and public.observed_at(client_time, server_time)
-           between v_eff - interval '20 minutes' and v_eff + interval '20 minutes';
+           > v_eff - interval '20 minutes'
+       and public.observed_at(client_time, server_time)
+           < v_eff + interval '20 minutes';
 
     if v_last_eff is not null then
         raise exception 'rate limited';
