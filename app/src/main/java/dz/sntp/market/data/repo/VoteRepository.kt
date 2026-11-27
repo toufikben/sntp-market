@@ -104,7 +104,14 @@ class VoteRepository(
     ): VoteOutcome = withContext(Dispatchers.IO) {
         val nowMs = System.currentTimeMillis()
         val sinceLast = nowMs - prefs.lastVoteAt()
-        if (sinceLast < VOTE_COOLDOWN_MS) {
+        // A negative gap means the stored stamp is in the future: the phone's clock
+        // was moved forward (or forward and back) between two votes. `sinceLast <
+        // cooldown` then held for as long as the skew lasted — a trader who corrected
+        // a wrong clock was locked out for hours, with the app telling him to wait
+        // 20 minutes and no way to know why. The client check only exists to spare a
+        // round trip; the server enforces the real 20-minute gap on the observation
+        // time, so letting a skewed stamp through is safe and the honest option.
+        if (sinceLast in 0 until VOTE_COOLDOWN_MS) {
             return@withContext VoteOutcome(false, false, VoteMessage.RATE_LIMITED)
         }
 

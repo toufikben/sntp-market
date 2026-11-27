@@ -10,7 +10,7 @@ import android.widget.RemoteViews
 import dz.sntp.market.MainActivity
 import dz.sntp.market.R
 import dz.sntp.market.SntpApp
-import dz.sntp.market.data.model.Freshness
+import dz.sntp.market.data.model.Caveat
 import dz.sntp.market.data.model.MarketState
 import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Source
@@ -146,11 +146,19 @@ class StatusWidgetProvider : AppWidgetProvider() {
             // quietest thing on the card. On the app it is a banner; here the only
             // lever is colour, so the warning line takes the amber that means
             // "not confirmed" instead of the grey used for provenance.
-            val stale = state.freshness != Freshness.LIVE
+            //
+            // Keyed on the caveat, not on freshness: a seed row is stale in the
+            // freshness sense and is *not* a warning — its own text already says
+            // «جدول معتاد — غير مؤكد», and painting it amber put the loudest colour
+            // on the line that has the least to warn about.
             v.setTextColor(
                 R.id.widget_trust,
                 context.getColor(
-                    if (stale) R.color.widget_unknown else R.color.widget_text_secondary
+                    if (state.caveat != Caveat.NONE) {
+                        R.color.widget_unknown
+                    } else {
+                        R.color.widget_text_secondary
+                    }
                 ),
             )
             return withClick(context, v)
@@ -204,18 +212,12 @@ class StatusWidgetProvider : AppWidgetProvider() {
          * no longer confirmed.
          */
         private fun trustOf(context: Context, state: MarketState): String {
-            // The seed is checked first, before freshness. A seed row is the usual
-            // timetable, not a report that has aged — saying "last known information,
-            // now unconfirmed" over it would claim a confirmation existed and lapsed,
-            // when nothing was ever confirmed.
-            if (state.source == Source.SEED) return context.getString(R.string.trust_seed)
-
-            // Same rule as the card: anything not verified against the server in this
-            // launch is the last known information, not the current truth. The widget
-            // used to cover only STALE/OFFLINE, so a CACHED row — the one the widget
-            // reads most often, since it never fetches — showed a bare source label
-            // with no hint that it might be hours old.
-            if (state.freshness != Freshness.LIVE) {
+            // The rule is [MarketState.caveat], not a fourth copy of it. The seed
+            // check comes first there because a seed row is the usual timetable, not
+            // a report that has aged: saying "last known information, now unconfirmed"
+            // over it claimed a confirmation existed and lapsed, when nothing was ever
+            // confirmed.
+            if (state.caveat != Caveat.NONE) {
                 return context.getString(R.string.widget_stale)
             }
             val source = when (state.source) {

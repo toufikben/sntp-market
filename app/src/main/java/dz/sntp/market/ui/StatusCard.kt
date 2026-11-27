@@ -24,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dz.sntp.market.R
-import dz.sntp.market.data.model.Freshness
+import dz.sntp.market.data.model.Caveat
 import dz.sntp.market.data.model.MarketState
 import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Source
@@ -162,7 +162,26 @@ fun DetailRows(ui: UiState) {
     // Any answer that was not verified against the server in this launch carries the
     // caveat. It used to cover only STALE and OFFLINE, and CACHED — a row read from
     // disk that the server could not be asked about — drew nothing at all.
-    if (s.freshness != Freshness.LIVE) {
+    //
+    // Which caveat is decided by [MarketState.caveat], not here: the widget and the
+    // notification answer the same question, and three copies of the rule is how
+    // they came to disagree. A seed row is the case that was wrong — it is the
+    // usual timetable, not a report that has aged, so «آخر معلومة معروفة — غير
+    // مؤكدة الآن» claimed a confirmation had existed and lapsed, printed directly
+    // under «لا بيانات اليوم»: two lines that cannot both be true.
+    val caveat = when {
+        // A build with no server behind it is not "offline". Offline is a temporary
+        // condition the user can wait out by moving to signal; this one never
+        // clears, and the difference decides whether he keeps checking the screen
+        // for an answer that is not coming. The vote buttons are equally dead —
+        // every tap is refused — so the banner says the votes are not counted
+        // rather than letting him report the market into a queue that never drains.
+        !ui.configured -> R.string.not_configured
+        s.caveat == Caveat.OFFLINE -> R.string.offline_warning
+        s.caveat == Caveat.STALE -> R.string.stale_warning
+        else -> 0
+    }
+    if (caveat != 0) {
         Spacer(Modifier.height(10.dp))
         Box(
             modifier = Modifier
@@ -172,20 +191,7 @@ fun DetailRows(ui: UiState) {
                 .padding(12.dp)
         ) {
             Text(
-                // A build with no server behind it is not "offline". Offline is a
-                // temporary condition the user can wait out by moving to signal;
-                // this one never clears, and the difference decides whether he keeps
-                // checking the screen for an answer that is not coming. The vote
-                // buttons are equally dead — every tap is refused — so the banner
-                // says the votes are not counted rather than letting him report the
-                // market into a queue that can never drain.
-                text = if (!ui.configured) {
-                    stringResource(R.string.not_configured)
-                } else if (s.freshness == Freshness.OFFLINE) {
-                    stringResource(R.string.offline_warning)
-                } else {
-                    stringResource(R.string.stale_warning)
-                },
+                text = stringResource(caveat),
                 style = MaterialTheme.typography.bodyMedium,
                 color = SntpColors.Unknown,
             )

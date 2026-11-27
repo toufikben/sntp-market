@@ -13,8 +13,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dz.sntp.market.MainActivity
 import dz.sntp.market.R
+import dz.sntp.market.data.model.Caveat
 import dz.sntp.market.data.model.MarketState
-import dz.sntp.market.data.model.Freshness
 import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Source
 
@@ -156,9 +156,16 @@ object Notifier {
         // common case unmarked: a notification reading "السوق مفتوح" built from
         // yesterday's row, with nothing saying so. A notification is the one place
         // the user cannot see the stale banner, so it has to carry the caveat.
+        //
+        // The decision is [MarketState.caveat], shared with the card and the
+        // widget — but the seed keeps its own wording, and it comes first. A seed
+        // row is the usual timetable, not a report that aged: [Caveat.NONE] says
+        // "no warning needed", which is right on the card (whose source line
+        // already says «جدول معتاد») and wrong here, where nothing else on the
+        // notification would say the hour is a guess at all.
         val caveat = when {
             state.source == Source.SEED -> R.string.notif_seed_subtext
-            state.freshness == Freshness.LIVE -> 0
+            state.caveat == Caveat.NONE -> 0
             else -> R.string.notif_stale_subtext
         }
         if (caveat != 0) builder.setSubText(context.getString(caveat))

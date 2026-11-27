@@ -25,6 +25,19 @@ enum class Freshness {
     OFFLINE,
 }
 
+/**
+ * The caveat that belongs under the card, if any.
+ *
+ * [NONE] means "no banner". A seed row is [NONE] even when it is stale or
+ * offline: it is the usual timetable, not a report that has aged, so
+ * «آخر معلومة معروفة — غير مؤكدة الآن» claimed a confirmation had existed and
+ * lapsed — and «تُعرض آخر معلومة محفوظة» claimed a saved copy existed. Neither is
+ * true of a built-in timetable, and the card printed one of them directly under
+ * «لا بيانات اليوم», two lines that cannot both be true. Its own source line
+ * («المصدر: جدول معتاد») is the label this state needs, and it is already there.
+ */
+enum class Caveat { NONE, OFFLINE, STALE }
+
 @Serializable
 data class MarketStateDto(
     @SerialName("market_id") val marketId: String? = null,
@@ -56,6 +69,24 @@ data class MarketState(
     val freshness: Freshness,
 ) {
     val isTrustworthy: Boolean get() = source == Source.ADMIN || confidence >= 0.6
+
+    /**
+     * Whether this answer needs a caveat, and which one.
+     *
+     * A seed row is [Caveat.NONE]: it is the usual timetable, not a report that
+     * has aged, so «آخر معلومة معروفة — غير مؤكدة الآن» claimed a confirmation
+     * had existed and lapsed. The card printed that banner directly under «لا
+     * بيانات اليوم», two lines that cannot both be true, while the widget and the
+     * notification already checked the seed *before* freshness. The card was the
+     * only surface that did not.
+     */
+    val caveat: Caveat
+        get() = when {
+            source == Source.SEED -> Caveat.NONE
+            freshness == Freshness.OFFLINE -> Caveat.OFFLINE
+            freshness != Freshness.LIVE -> Caveat.STALE
+            else -> Caveat.NONE
+        }
 
     /**
      * Nobody has confirmed anything today — which is not the same claim as "the
