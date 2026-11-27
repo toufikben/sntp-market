@@ -1,6 +1,8 @@
 package dz.sntp.market.data.repo
 
 import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Reports captured inside the market, where the network is usually dead. They are
@@ -64,9 +66,15 @@ object PendingVotes {
         }
     }
 
-    @Synchronized
-    fun count(context: Context): Int = runCatching {
-        val f = file(context)
-        if (!f.exists()) 0 else f.readLines().count { it.isNotBlank() }
-    }.getOrDefault(0)
+    /**
+     * Reads the queue off the main thread. Every caller is inside a coroutine, and
+     * the refresh path used to run this file read on the Main dispatcher — three
+     * times per refresh, on the screen the user is staring at.
+     */
+    suspend fun count(context: Context): Int = withContext(Dispatchers.IO) {
+        runCatching {
+            val f = file(context)
+            if (!f.exists()) 0 else f.readLines().count { it.isNotBlank() }
+        }.getOrDefault(0)
+    }
 }
