@@ -103,7 +103,17 @@ object Notifier {
     private fun titleOf(context: Context, state: MarketState): String = when (state.status) {
         MarketStatus.OPEN -> context.getString(R.string.status_open)
         MarketStatus.CLOSED -> context.getString(R.string.status_closed)
-        MarketStatus.UNKNOWN -> context.getString(R.string.status_unknown)
+        // The card and the widget already separate "nobody has said anything" from
+        // "traders looked and could not agree". This surface did not: it called both
+        // "غير مؤكد", so the 05:00 notification — the one most users ever read —
+        // claimed a disagreement where no one had voted at all, and then the app
+        // they opened a minute later said "لا بيانات اليوم". Same state, two
+        // different claims, on the two screens the product is judged by.
+        MarketStatus.UNKNOWN -> if (state.hasNoDataToday) {
+            context.getString(R.string.status_no_data)
+        } else {
+            context.getString(R.string.status_unknown)
+        }
     }
 
     private fun bodyOf(context: Context, state: MarketState): String = when (state.status) {
