@@ -296,9 +296,10 @@ class MarketRepository(
     /**
      * Day -> status map for the last ~120 days, for the calendar grid.
      *
-     * The second value says the map came from disk because the server could not be
-     * reached. Without it the screen cannot tell "this market has no record" from
-     * "I could not ask", and it printed "لا سجل بعد" over a record that existed.
+     * The second value says the server could not be asked in this read — the map is
+     * either the copy from disk or nothing at all. Without it the screen cannot tell
+     * "this market has no record" from "I could not ask", and it printed
+     * "لا سجل بعد" over a record that existed.
      */
     suspend fun loadHistory(): Pair<Map<String, String>, Boolean> = withContext(Dispatchers.IO) {
         // From the first day of the oldest month the calendar can show, not from
@@ -343,7 +344,14 @@ class MarketRepository(
             }.getOrNull()?.associate { row -> row.day to row.status }
         }
 
-        (cached ?: emptyMap()) to (cached != null)
+        // The flag means "this map did not come from the server", not "a copy was
+        // found". Returning `false` when the fetch failed and nothing was cached
+        // told the screen the empty map was a real answer, and the calendar printed
+        // «لا سجل بعد» — "no record yet", a claim about the market — over what was
+        // only a failed request. Nothing distinguishes the two in the data, so the
+        // one bit has to describe the read, and the screen decides the wording
+        // (the cache line when there is a copy, the offline line when there is not).
+        (cached ?: emptyMap()) to true
     }
 
     // --------------------------------------------------------------- reports

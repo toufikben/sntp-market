@@ -37,7 +37,11 @@ data class UiState(
     val shops: List<Shop> = emptyList(),
     val sponsors: List<Sponsor> = emptyList(),
     val history: Map<String, String> = emptyMap(),
-    /** True when [history] came from disk because the server could not be reached. */
+    /**
+     * True when [history] was not read from the server in this launch — either
+     * because it came from disk, or because the fetch failed with nothing cached.
+     * The screen needs both facts and the map cannot carry the difference.
+     */
     val historyCached: Boolean = false,
     val pendingVotes: Int = 0,
     val voting: Boolean = false,
