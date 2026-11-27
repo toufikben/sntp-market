@@ -366,7 +366,14 @@ class MarketRepository(
         if (!isConfigured) return@withContext emptyList()
         val body = runCatching {
             client.get(
-                "sponsors?select=id,slot,name,phone,url&order=slot.asc"
+                // `id.asc` is a tie-breaker, not decoration. PostgREST gives no
+                // order for equal keys, so two rows in the same slot (an overlap
+                // the constraint below should have prevented, or a slot whose old
+                // row was left `active`) came back in whatever order the planner
+                // chose. The screen picks `firstOrNull { it.slot == 1 }`, so the
+                // sponsor shown could change between two refreshes without a
+                // single row being edited.
+                "sponsors?select=id,slot,name,phone,url&order=slot.asc,id.asc"
             ).getOrNull()
         }.getOrNull() ?: return@withContext emptyList()
 

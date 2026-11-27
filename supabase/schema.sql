@@ -6,6 +6,9 @@
 
 create extension if not exists "pgcrypto";
 create extension if not exists "pg_cron";
+-- Needed for the sponsors exclusion constraint below: an equality test on `slot`
+-- (an int) has no gist operator class without this extension.
+create extension if not exists "btree_gist";
 
 -- -----------------------------------------------------------------------------
 -- 1. الأسواق
@@ -261,6 +264,49 @@ create table if not exists public.sponsors (
     ends_at    timestamptz not null,
     active     boolean not null default true
 );
+
+-- A slot is sold as exclusive, and nothing enforced it. Two live rows in slot 1
+-- both pass the read policy, and the app renders whichever comes back first
+-- (`firstOrNull { it.slot == 1 }`), so a sponsor who paid for the only placement
+-- in that slot is replaced — or shares it — with no warning and no refund. The
+-- second row is also invisible to the person who sold it, because nothing in the
+-- console flags the overlap.
+--
+-- Enforced in the database rather than in the admin tooling: the rows are written
+-- from the SQL editor, from a script, or by hand, and every one of those paths has
+-- to hit the same wall. `[]` makes the range closed at both ends, so a placement
+-- that starts the exact second another one ends is still a conflict — the app
+-- shows one row per slot, and the boundary second is not a meaningful exception.
+--
+-- `where (active)` on purpose: cancelling a placement and reselling the same slot
+-- for the same dates is the ordinary case, and a constraint that counted the dead
+-- row would make the second sale impossible.
+-- Idempotent: this file is meant to be run more than once (it uses
+-- `create table if not exists` and `drop ... if exists` throughout), and a bare
+-- ADD CONSTRAINT would abort the whole script the second time.
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint where conname = 'sponsors_dates_ordered'
+    ) then
+        alter table public.sponsors
+            add constraint sponsors_dates_ordered check (ends_at > starts_at);
+    end if;
+end $$;
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint where conname = 'sponsors_slot_no_overlap'
+    ) then
+        alter table public.sponsors
+            add constraint sponsors_slot_no_overlap
+            exclude using gist (
+                slot with =,
+                tstzrange(starts_at, ends_at, '[]') with &&
+            ) where (active);
+    end if;
+end $$;
 
 create table if not exists public.admin_actions (
     id         bigserial primary key,
