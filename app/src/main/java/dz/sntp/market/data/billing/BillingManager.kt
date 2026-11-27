@@ -75,18 +75,52 @@ class BillingManager(private val context: Context) {
             )
             .build()
         client = c
+        startConnection(c, attempt = 1)
+    }
+
+    /**
+     * Play asks for `startConnection` to be retried when the service drops — the
+     * BillingClient docs are explicit about it. Nothing did, and `connect()` returns
+     * early once a client exists, so a single disconnect (a Play Store update, a
+     * service crash, a brief network change) left billing dead for the rest of the
+     * process: the upgrade sheet said "not activated yet" and no purchase could be
+     * started until the user force-stopped the app.
+     */
+    private fun startConnection(c: BillingClient, attempt: Int) {
         c.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                     queryProducts()
                     restore()
+                } else if (attempt < MAX_CONNECT_ATTEMPTS) {
+                    retryLater(c, attempt)
+                } else {
+                    _ready.value = false
                 }
             }
 
             override fun onBillingServiceDisconnected() {
                 _ready.value = false
+                // Fresh budget: this is a new drop, not a continuation of the last
+                // one, and it is exactly the case this retry exists for.
+                retryLater(c, 1)
             }
         })
+    }
+
+    private fun retryLater(c: BillingClient, attempt: Int) {
+        mainHandler.postDelayed({
+            // A new client was built meanwhile (close + connect): this one is stale.
+            if (client !== c) return@postDelayed
+            if (!c.isReady) startConnection(c, attempt + 1)
+        }, CONNECT_RETRY_MS * attempt)
+    }
+
+    fun close() {
+        mainHandler.removeCallbacksAndMessages(null)
+        client?.endConnection()
+        client = null
+        _ready.value = false
     }
 
     fun buy(activity: Activity, sku: String): String? {
@@ -180,5 +214,11 @@ class BillingManager(private val context: Context) {
         const val SKU_BOUTIQUE_MONTHLY = "boutique_monthly"
 
         val SKUS = listOf(SKU_PRO_MONTHLY, SKU_PRO_YEARLY, SKU_BOUTIQUE_MONTHLY)
+
+        /** Play's own guidance is a few retries with backoff, not an infinite loop. */
+        private const val MAX_CONNECT_ATTEMPTS = 4
+        private const val CONNECT_RETRY_MS = 2_000L
     }
+
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 }
