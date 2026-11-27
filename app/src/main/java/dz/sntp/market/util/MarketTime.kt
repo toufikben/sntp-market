@@ -69,6 +69,25 @@ object MarketTime {
     }
 
     /**
+     * The stamp the card and the widget print: an hour alone when the evidence is
+     * from today, the day as well when it is not.
+     *
+     * The card draws "آخر تحديث 05:30" directly under today's date, so a bare hour
+     * on a row the server last touched two days ago read as "updated at 05:30 this
+     * morning" — the most misleading thing this screen can say, and it survived the
+     * stale banner because the banner is a caveat and the hour looks like a fact.
+     * Naming the day is the difference between "old" and "wrong".
+     */
+    fun stampWithDay(epochMs: Long?, locale: Locale): String? {
+        if (epochMs == null || epochMs <= 0) return null
+        val t = Instant.ofEpochMilli(epochMs).atZone(ZONE)
+        val hm = "%02d:%02d".format(t.hour, t.minute)
+        if (t.toLocalDate() == today()) return hm
+        val day = t.toLocalDate().format(DateTimeFormatter.ofPattern("d MMMM", locale))
+        return "$day · $hm"
+    }
+
+    /**
      * Day + month + year in the user's locale. Hand-built strings such as
      * "$day $dayOfMonth $year" come out mangled in RTL, because the bidi
      * algorithm reorders the run: the month simply disappears.

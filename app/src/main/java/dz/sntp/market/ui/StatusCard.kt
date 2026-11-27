@@ -152,7 +152,7 @@ fun DetailRows(ui: UiState) {
 
     InfoRow("", sourceText(s), dim = true)
 
-    MarketTime.stamp(s.updatedAtEpochMs)?.let {
+    MarketTime.stampWithDay(s.updatedAtEpochMs, displayLocale())?.let {
         InfoRow("", stringResource(R.string.updated_at, it), dim = true)
     }
 
