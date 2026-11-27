@@ -564,7 +564,13 @@ begin
         reason_fr       = null,
         confidence      = round(v_conf::numeric, 3),
         reporters_count = v_devices,
-        source          = 'traders',
+        -- Provenance has to describe what is actually behind the row. This used to
+        -- be hardcoded 'traders', so a market nobody had voted on since it was
+        -- created still claimed its source was the traders' votes: the card printed
+        -- "لا بيانات اليوم" and, two lines under it, "المصدر: تصويت التجار" —
+        -- attribution for votes that do not exist, on the one screen built to be
+        -- trusted at a glance. With no counted devices the answer is the seed.
+        source          = case when v_devices > 0 then 'traders' else 'seed' end,
         updated_at      = coalesce(v_evidence, updated_at)
     where market_slug = p_slug;
 
