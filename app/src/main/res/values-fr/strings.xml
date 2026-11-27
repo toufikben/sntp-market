@@ -95,7 +95,7 @@
     <string name="settings_notify_blocked">Notifications bloquées pour cette application. Autorisez-les dans les réglages du système</string>
     <string name="settings_language">Langue</string>
     <string name="settings_battery">Empêcher la mise en veille</string>
-    <string name="settings_battery_desc">Certains téléphones coupent les notifications</string>
+    <string name="settings_battery_desc">Certains téléphones coupent les notifications. Choisissez SNTP et autorisez-le en arrière-plan</string>
     <string name="settings_open">Ouvrir</string>
     <string name="settings_reputation">Votre fiabilité</string>
     <string name="settings_reputation_value">Votre fiabilité : %1$s</string>

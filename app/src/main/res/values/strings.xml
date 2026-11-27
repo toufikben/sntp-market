@@ -103,7 +103,7 @@
     <string name="settings_notify_blocked">الإشعارات ممنوعة لهذا التطبيق. اسمح بها من إعدادات النظام</string>
     <string name="settings_language">اللغة</string>
     <string name="settings_battery">منع إيقاف التطبيق</string>
-    <string name="settings_battery_desc">بعض الهواتف توقف الإشعارات. اضغط للسماح بالعمل في الخلفية</string>
+    <string name="settings_battery_desc">بعض الهواتف توقف الإشعارات. اختر SNTP من القائمة واستثنه من توفير الطاقة</string>
     <string name="settings_open">فتح</string>
     <string name="settings_reputation">موثوقيتك</string>
     <string name="settings_reputation_value">موثوقيتك: %1$s</string>

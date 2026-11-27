@@ -544,12 +544,25 @@ private fun openNotificationSettings(context: android.content.Context) {
     }
 }
 
+/**
+ * Takes the user where they can exempt this app from the battery killer — the
+ * single setting that decides whether the 05:00 notification arrives at all on
+ * Xiaomi, Oppo and Huawei.
+ *
+ * The first intent used to be ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, which
+ * needs the REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission declared in the
+ * manifest. It is not declared — and it is a Play-restricted permission that
+ * requires a declaration form — so the call always threw SecurityException, was
+ * swallowed by the runCatching below, and the user landed on the app-info page:
+ * a screen with no battery exemption on most OEMs, from a button promising one.
+ *
+ * ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS opens the exemption list itself and
+ * needs no permission, which is exactly the trade this wants.
+ */
 private fun openBatterySettings(context: android.content.Context) {
     val intents = buildList {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            add(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                data = Uri.parse("package:${context.packageName}")
-            })
+            add(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }
         add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.parse("package:${context.packageName}")
