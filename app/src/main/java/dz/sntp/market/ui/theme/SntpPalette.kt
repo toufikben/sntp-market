@@ -48,12 +48,18 @@ val LightPalette = SntpPalette(
     brandBar = Color(0xFF0F3D3E),
     brandDark = Color(0xFF082B2C),
     amber = Color(0xFFF2B441),
-    amberDark = Color(0xFFC98C1F),
-    open = Color(0xFF1E8E4E),
+    /**
+     * Amber used as *text*. The old #C98C1F was chosen to look like the accent and
+     * measured 2.3:1 on the cream card — it labelled the sponsor slot ("رعاية")
+     * and the "watch an ad" button, both 13sp, both effectively unreadable
+     * outdoors. Darkening it is the only fix that keeps the amber family.
+     */
+    amberDark = Color(0xFF8A5A00),
+    open = Color(0xFF197A43),
     openBg = Color(0xFFE3F4E9),
     closed = Color(0xFFB23A2E),
     closedBg = Color(0xFFFBE7E4),
-    unknown = Color(0xFF8A6D1F),
+    unknown = Color(0xFF7C5F16),
     unknownBg = Color(0xFFFBF2DC),
 )
 

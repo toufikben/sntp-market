@@ -9,9 +9,16 @@
     <color name="widget_bg">#FFF6F1E7</color>
     <color name="widget_text_primary">#FF1A1A1A</color>
     <color name="widget_text_secondary">#FF5A5A5A</color>
-    <color name="widget_open">#FF1E8E4E</color>
+    <!--
+      These three mirror the palette's open/closed/unknown. They were a shade
+      lighter than the palette and were darkened with it: on the 13sp trust line
+      and the "موثّق" badge the lighter green and amber fell under the 4.5:1
+      minimum for small text, which on a card read outdoors at 5 a.m. is the
+      difference between legible and decorative.
+    -->
+    <color name="widget_open">#FF197A43</color>
     <color name="widget_closed">#FFB23A2E</color>
-    <color name="widget_unknown">#FF8A6D1F</color>
+    <color name="widget_unknown">#FF7C5F16</color>
 
     <!--
       Window background, per mode. This is what the OS paints before the first
