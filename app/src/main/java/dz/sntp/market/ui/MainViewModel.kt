@@ -191,7 +191,21 @@ class MainViewModel : ViewModel() {
                 )
             }
             // Anything queued while offline goes out on the next successful read.
-            runCatching { votes.flushPending() }
+            //
+            // The flush changes the answer. Those votes are the trader's own
+            // observations from inside the market, the server recomputes the state
+            // the moment they land, and the read above happened *before* they were
+            // sent — so the screen kept showing the pre-flush verdict while the
+            // server already held his vote. He sees "غير مؤكد", concludes the app
+            // lost it, taps again, and the 20-minute rule refuses him. Re-read
+            // whenever something actually arrived.
+            val sent = runCatching { votes.flushPending() }.getOrDefault(0)
+            if (sent > 0) {
+                runCatching { repo.loadState() }.getOrNull()?.let { fresh ->
+                    notifyStateChange(fresh)
+                    _ui.update { it.copy(state = fresh) }
+                }
+            }
             // The counter above was read before the flush, so a queue that just
             // drained kept advertising "votes waiting to send" over an empty file.
             val left = PendingVotes.count(app)
