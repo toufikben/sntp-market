@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+      The window background follows the palette rather than the platform default.
+      The platform default is white in both modes, so a dark-mode user got a white
+      flash before the first Compose frame on every cold start.
+    -->
     <style name="Theme.Sntp" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@color/window_bg</item>
     </style>
 </resources>

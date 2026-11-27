@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Night variant of the window background. Without it the OS paints the light
+  colour before the first Compose frame, so a dark-mode user saw a white flash on
+  every cold start and on the Android 12+ splash screen.
+-->
+<resources>
+    <color name="window_bg">#FF12181A</color>
+</resources>

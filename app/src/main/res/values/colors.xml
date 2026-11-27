@@ -12,4 +12,12 @@
     <color name="widget_open">#FF1E8E4E</color>
     <color name="widget_closed">#FFB23A2E</color>
     <color name="widget_unknown">#FF8A6D1F</color>
+
+    <!--
+      Window background, per mode. This is what the OS paints before the first
+      Compose frame and what the Android 12+ splash screen uses. The platform
+      default is white, so a dark-mode user got a white flash on every cold
+      start — on an app built to be read at 5 a.m. Values mirror the palette.
+    -->
+    <color name="window_bg">#FFF6F1E7</color>
 </resources>
