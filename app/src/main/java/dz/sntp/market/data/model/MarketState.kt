@@ -75,21 +75,19 @@ data class MarketState(
      * newest counted vote was *observed*, and it survives the ageing-out, so it is
      * exactly the "did anyone report today" fact this needs.
      *
-     * A seed row is the one case where the timestamp cannot be read that way. The
-     * schema inserts the row with `updated_at default now()`, and the recompute
-     * keeps the old value with `coalesce(v_evidence, updated_at)` — so on the day
-     * the project is created, and on every day after a period with no votes, the
-     * timestamp is "today" while the source says plainly that no vote has ever
-     * backed it. Reading the stamp alone turned that into «غير مؤكد» — traders
-     * looked and could not agree — over a market nobody had reported at all. A
-     * seed source means there has never been a counted vote, so the answer is
-     * known without consulting the clock.
+     * The timestamp has to be genuinely absent when there is no evidence, which is
+     * why `market_state.updated_at` is nullable and a freshly created row carries
+     * no value. It used to default to `now()`, so on the day the project was
+     * created — and after every quiet spell, because the recompute keeps the old
+     * value — the stamp read "today" while no vote had ever backed it, and this
+     * claim came out false: the card said «غير مؤكد», which tells the trader that
+     * others looked and could not agree.
      */
     val hasNoDataToday: Boolean
         get() = status == MarketStatus.UNKNOWN &&
             reportersCount == 0 &&
             confidence <= 0.0 &&
-            (source == Source.SEED || !MarketTime.isToday(updatedAtEpochMs))
+            !MarketTime.isToday(updatedAtEpochMs)
 
     companion object {
         fun unknown(freshness: Freshness) = MarketState(

@@ -164,11 +164,32 @@ create table if not exists public.market_state (
     confidence      double precision not null default 0,
     reporters_count int not null default 0,
     source          text not null default 'seed' check (source in ('admin','traders','seed')),
-    updated_at      timestamptz not null default now()
+    -- Nullable on purpose: it means "no vote has ever been counted for this
+    -- market". The client reads it to tell «لا بيانات اليوم» from «غير مؤكد», and
+    -- a `default now()` stamped a row nobody had reported on as though evidence
+    -- had just arrived, so the card claimed the traders had disagreed.
+    updated_at      timestamptz
 );
 
 insert into public.market_state (market_slug) values ('sntp-el-hamiz')
 on conflict (market_slug) do nothing;
+
+-- Re-running this file must not fail on a project created by an older version,
+-- where the column was `not null default now()`.
+alter table public.market_state alter column updated_at drop not null;
+alter table public.market_state alter column updated_at drop default;
+
+-- And a project that already ran the old version carries a stamp it never earned.
+-- Cleared only where the market has no counted report at all, so a market that was
+-- reported earlier today and has since aged out of the consensus keeps its
+-- evidence — that stamp is what stops the card from calling a reported day empty.
+update public.market_state ms
+   set updated_at = null
+ where ms.updated_at is not null
+   and not exists (
+       select 1 from public.reports r
+        where r.market_slug = ms.market_slug and r.counted
+   );
 
 create table if not exists public.market_override (
     market_slug text primary key references public.markets(slug) on delete cascade,

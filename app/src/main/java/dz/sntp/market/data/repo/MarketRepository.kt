@@ -93,7 +93,7 @@ class MarketRepository(
             } else {
                 Freshness.STALE
             }
-            val domain = withUsualHours(remote.toDomain(freshness, now), cachedWeekOrSeed())
+            val domain = withUsualHours(remote.toDomain(freshness), cachedWeekOrSeed())
             prefs.saveCachedState(
                 json.encodeToString(MarketStateDto.serializer(), remote),
                 now,
@@ -131,7 +131,7 @@ class MarketRepository(
                     else -> Freshness.STALE
                 }
                 return@withContext withUsualHours(
-                    dto.toDomain(freshness, cachedAt),
+                    dto.toDomain(freshness),
                     cachedWeekOrSeed(),
                 )
             }
@@ -163,7 +163,7 @@ class MarketRepository(
             ?.let { now - it }
             ?: (now - cachedAt)
         val freshness = if (evidenceAge <= freshWindowMs) Freshness.CACHED else Freshness.STALE
-        withUsualHours(dto.toDomain(freshness, cachedAt), cachedWeekOrSeed())
+        withUsualHours(dto.toDomain(freshness), cachedWeekOrSeed())
     }
 
     /**
@@ -413,43 +413,33 @@ class MarketRepository(
     }
 }
 
-private fun MarketStateDto.toDomain(freshness: Freshness, fetchedAt: Long): MarketState {
-    val src = when (source.lowercase()) {
+private fun MarketStateDto.toDomain(freshness: Freshness) = MarketState(
+    status = when (status.lowercase()) {
+        "open" -> MarketStatus.OPEN
+        "closed" -> MarketStatus.CLOSED
+        else -> MarketStatus.UNKNOWN
+    },
+    opensAtLocal = opensAt,
+    closesAtLocal = closesAt,
+    reasonAr = reasonAr,
+    reasonFr = reasonFr,
+    confidence = confidence,
+    reportersCount = reportersCount,
+    source = when (source.lowercase()) {
         "admin" -> Source.ADMIN
         "traders" -> Source.TRADERS
         else -> Source.SEED
-    }
-    return MarketState(
-        status = when (status.lowercase()) {
-            "open" -> MarketStatus.OPEN
-            "closed" -> MarketStatus.CLOSED
-            else -> MarketStatus.UNKNOWN
-        },
-        opensAtLocal = opensAt,
-        closesAtLocal = closesAt,
-        reasonAr = reasonAr,
-        reasonFr = reasonFr,
-        confidence = confidence,
-        reportersCount = reportersCount,
-        source = src,
-        // The server's own `updated_at` is what "last update" means; the local fetch
-        // time only stands in when an older cache predates that column. Showing the
-        // fetch time told the trader a day-old state had just been updated.
-        //
-        // A seed row has no update to report. Its timestamp is only the moment the
-        // row was created by the schema (and, after a quiet spell, the last vote
-        // that has long since aged out of the consensus), so printing it as
-        // "آخر تحديث" told the trader somebody had confirmed the market at that
-        // hour. Nothing ever did — the source line two rows above says so — and the
-        // card contradicted itself in the one place a glance is supposed to settle.
-        updatedAtEpochMs = if (src == Source.SEED) {
-            null
-        } else {
-            IsoTime.toEpochMs(updatedAt).takeIf { it > 0 } ?: fetchedAt.takeIf { it > 0 }
-        },
-        freshness = freshness,
-    )
-}
+    },
+    // The server's own `updated_at` is what "last update" means. There is no
+    // stand-in for a missing value: null now means "no vote has ever been counted",
+    // and substituting the local fetch time turned that into "confirmed 30 seconds
+    // ago" — which is the opposite of the truth, and it is the fact the card uses
+    // to decide between «لا بيانات اليوم» and «غير مؤكد». The fetch-time fallback
+    // existed for caches written before the column existed, and those caches are
+    // long gone.
+    updatedAtEpochMs = IsoTime.toEpochMs(updatedAt).takeIf { it > 0 },
+    freshness = freshness,
+)
 
 private fun ShopDto.toDomain() = Shop(
     id = id,

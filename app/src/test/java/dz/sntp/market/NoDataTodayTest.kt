@@ -64,14 +64,11 @@ class NoDataTodayTest {
     }
 
     @Test
-    fun `a seed row stamped today is still 'no data'`() {
-        // The schema creates market_state with `updated_at default now()`, and the
-        // recompute keeps it with `coalesce(v_evidence, updated_at)`. On the day the
-        // project is created the stamp is today's while no vote has ever backed it,
-        // so reading the clock alone called the market "unconfirmed".
-        assertTrue(
-            state(updatedAt = hoursAgo(1), source = Source.SEED).hasNoDataToday
-        )
+    fun `a row with no evidence timestamp is 'no data'`() {
+        // The server writes no timestamp until a vote has actually been counted.
+        // A fresh row used to be stamped `now()` by the column default, so the card
+        // claimed traders had disagreed on a market nobody had ever reported.
+        assertTrue(state(updatedAt = null).hasNoDataToday)
     }
 
     @Test
