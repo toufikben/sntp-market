@@ -17,4 +17,6 @@ secrets.properties
 
 /dist/
 /evidence/
+# Device-install scratch: the APK pulled from CI and its screenshots.
+/dist_new/
 
