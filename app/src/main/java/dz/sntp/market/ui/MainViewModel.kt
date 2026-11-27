@@ -169,7 +169,12 @@ class MainViewModel : ViewModel() {
             val weekV = runCatching { week.await() }.getOrElse { _ui.value.week }
             val shopsV = runCatching { shops.await() }.getOrElse { _ui.value.shops }
             val sponsorsV = runCatching { sponsors.await() }.getOrElse { _ui.value.sponsors }
-            val historyV = runCatching { history.await() }.getOrElse { _ui.value.history to false }
+            // The fallback keeps the flag that came with the map it is keeping.
+            // Holding the old rows while asserting `false` ("read from the server
+            // just now") drew a stale archive with no caveat at all — the one thing
+            // the flag exists to prevent.
+            val historyV = runCatching { history.await() }
+                .getOrElse { _ui.value.history to _ui.value.historyCached }
             val repV = runCatching { rep.await() }.getOrElse { _ui.value.reputation }
 
             // The spec asks for a notification when the state changes, not only at
