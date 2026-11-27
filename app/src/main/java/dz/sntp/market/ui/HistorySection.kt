@@ -161,30 +161,36 @@ fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
     // with nothing saying why.
     val monthKey = month.toString()          // "2026-11"
     val monthHasRows = history.keys.any { it.startsWith(monthKey) }
-    if (!monthHasRows) {
+    // Offline, the only thing this screen knows is what the last copy held. Saying
+    // «تعذّر تحميل السجل» over a month the copy simply has no rows for claimed a
+    // failed request that did not fail — the read succeeded and the archive is
+    // what is thin. The caveat line is the same one drawn under a populated grid,
+    // because it is the only claim that is true either way.
+    if (fromCache) {
         Text(
-            // "No record yet" is a claim about the *market*, and it is only true for
-            // the month we are still in: the archive starts now. Any earlier month
-            // came back empty because nothing was recorded then, which is a
-            // different sentence. Offline is a third thing again — the record
-            // exists and could not be fetched.
             text = stringResource(
-                when {
-                    fromCache -> R.string.history_offline
-                    month == currentMonth -> R.string.history_empty
-                    else -> R.string.history_month_empty
-                }
+                if (history.isEmpty()) R.string.history_offline else R.string.history_cached
             ),
-            style = MaterialTheme.typography.bodyMedium,
+            style = if (history.isEmpty()) {
+                MaterialTheme.typography.bodyMedium
+            } else {
+                MaterialTheme.typography.labelSmall
+            },
             color = SntpColors.TextSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
-    } else if (fromCache) {
-        // The grid is real but old: it is the last copy this phone managed to read.
+    } else if (!monthHasRows) {
         Text(
-            text = stringResource(R.string.history_cached),
-            style = MaterialTheme.typography.labelSmall,
+            // "No record yet" is a claim about the *market*, and it is only true for
+            // the month we are still in: the archive starts now. Any earlier month
+            // came back empty because nothing was recorded then, which is a
+            // different sentence.
+            text = stringResource(
+                if (month == currentMonth) R.string.history_empty
+                else R.string.history_month_empty
+            ),
+            style = MaterialTheme.typography.bodyMedium,
             color = SntpColors.TextSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
