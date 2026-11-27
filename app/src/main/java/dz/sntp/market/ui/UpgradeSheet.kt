@@ -45,10 +45,20 @@ fun UpgradeSheet(
 ) {
     if (!visible) return
 
+    // A connected client is not the same as something being purchasable.
+    //
+    // `ready` comes from `queryProductDetails` returning products, but a product
+    // can come back without a subscription offer (a console misconfiguration, or a
+    // base plan that is not active yet). `buy()` then returns "offer_unavailable"
+    // and the sheet printed "check your connection" — a lie about a working network
+    // over a product the console will not sell. `prices` is built from the offer's
+    // first pricing phase, so it is empty in exactly that case; requiring it keeps
+    // the button disabled, which is the honest state.
+    val productsKnown = prices.isNotEmpty()
     // Nothing on this sheet is purchasable while a live plan is held: the rows
     // would charge for a second Pro, and Play would treat it as an upgrade of a
     // subscription that is already running.
-    val canBuy = billingReady && activeSku == null && tier == Tier.FREE
+    val canBuy = billingReady && productsKnown && activeSku == null && tier == Tier.FREE
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -113,6 +123,11 @@ fun UpgradeSheet(
                     // admin grant). Neither row is the one they hold, and selling
                     // them a second Pro would be charging for something they have.
                     tier != Tier.FREE && activeSku == null -> stringResource(R.string.upgrade_already_pro)
+                    // Play answered but no product carries a usable offer, so no row
+                    // can actually be bought. "Not activated" is the honest message;
+                    // "check your connection" would send the user chasing a network
+                    // that is fine.
+                    billingReady && !productsKnown -> stringResource(R.string.upgrade_unavailable)
                     billingReady -> stringResource(R.string.upgrade_free_note)
                     else -> stringResource(R.string.upgrade_unavailable)
                 },
