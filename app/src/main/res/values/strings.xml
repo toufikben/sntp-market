@@ -20,6 +20,12 @@
     <string name="updated_at">آخر تحديث %1$s</string>
     <string name="stale_warning">آخر معلومة معروفة — غير مؤكدة الآن</string>
     <string name="offline_warning">لا اتصال — تُعرض آخر معلومة محفوظة</string>
+    <!--
+      Shown only when the build carries no server URL at all. Without it the
+      screen looks perfectly healthy over a seed timetable that can never be
+      confirmed, and the vote button invites an action that cannot be delivered.
+    -->
+    <string name="not_configured">هذه النسخة غير مرتبطة بالخادم — تُعرض أوقات معتادة فقط، ولا يُحتسب التصويت</string>
     <string name="refresh">تحديث</string>
 
     <!-- Notifications -->

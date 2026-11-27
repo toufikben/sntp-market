@@ -101,6 +101,17 @@ class VoteRepository(
             return@withContext VoteOutcome(false, false, VoteMessage.RATE_LIMITED)
         }
 
+        // With no server configured there is nowhere to send a vote, and the
+        // failure it produced was not an ApiException — a blank base URL makes
+        // OkHttp throw on the malformed URL — so it fell into the "never lose the
+        // observation" branch and was queued. The trader was told his vote would go
+        // out when the network came back, and it never could: the queue drained
+        // against the same empty URL every time. A build without a backend has to
+        // say so, not accept work it cannot deliver.
+        if (!marketRepository.isConfigured) {
+            return@withContext VoteOutcome(false, false, VoteMessage.FAILED)
+        }
+
         val loc = currentLocation()
         val proximity = proximityTo(loc)
         if (proximity == Proximity.FAR) {

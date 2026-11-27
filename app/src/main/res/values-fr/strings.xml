@@ -18,6 +18,7 @@
     <string name="updated_at">Mis à jour %1$s</string>
     <string name="stale_warning">Dernière info connue — non confirmée maintenant</string>
     <string name="offline_warning">Hors ligne — dernière info enregistrée</string>
+    <string name="not_configured">Cette version n\'est reliée à aucun serveur — horaires habituels seulement, les votes ne sont pas comptés</string>
     <string name="refresh">Actualiser</string>
 
     <!-- Notifications -->

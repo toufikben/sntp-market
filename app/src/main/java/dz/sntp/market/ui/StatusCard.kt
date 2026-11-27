@@ -169,7 +169,16 @@ fun DetailRows(ui: UiState) {
                 .padding(12.dp)
         ) {
             Text(
-                text = if (s.freshness == Freshness.OFFLINE) {
+                // A build with no server behind it is not "offline". Offline is a
+                // temporary condition the user can wait out by moving to signal;
+                // this one never clears, and the difference decides whether he keeps
+                // checking the screen for an answer that is not coming. The vote
+                // buttons are equally dead — every tap is refused — so the banner
+                // says the votes are not counted rather than letting him report the
+                // market into a queue that can never drain.
+                text = if (!ui.configured) {
+                    stringResource(R.string.not_configured)
+                } else if (s.freshness == Freshness.OFFLINE) {
                     stringResource(R.string.offline_warning)
                 } else {
                     stringResource(R.string.stale_warning)
