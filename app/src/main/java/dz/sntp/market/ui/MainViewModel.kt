@@ -205,6 +205,15 @@ class MainViewModel : ViewModel() {
                     notifyStateChange(fresh)
                     _ui.update { it.copy(state = fresh) }
                 }
+                // The calendar is written by the same server function that recomputes
+                // the state, so a vote that just landed usually turns today's cell
+                // from empty into a real day. It was fetched before the flush and
+                // never refetched: the card said "مفتوح" while the history tab, one
+                // tap away, still drew today as "لا سجل" — the app contradicting
+                // itself about the same vote.
+                runCatching { repo.loadHistory() }.getOrNull()?.let { fresh ->
+                    _ui.update { it.copy(history = fresh.first, historyCached = fresh.second) }
+                }
             }
             // The counter above was read before the flush, so a queue that just
             // drained kept advertising "votes waiting to send" over an empty file.
