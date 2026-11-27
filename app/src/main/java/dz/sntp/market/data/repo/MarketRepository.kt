@@ -413,30 +413,43 @@ class MarketRepository(
     }
 }
 
-private fun MarketStateDto.toDomain(freshness: Freshness, fetchedAt: Long) = MarketState(
-    status = when (status.lowercase()) {
-        "open" -> MarketStatus.OPEN
-        "closed" -> MarketStatus.CLOSED
-        else -> MarketStatus.UNKNOWN
-    },
-    opensAtLocal = opensAt,
-    closesAtLocal = closesAt,
-    reasonAr = reasonAr,
-    reasonFr = reasonFr,
-    confidence = confidence,
-    reportersCount = reportersCount,
-    source = when (source.lowercase()) {
+private fun MarketStateDto.toDomain(freshness: Freshness, fetchedAt: Long): MarketState {
+    val src = when (source.lowercase()) {
         "admin" -> Source.ADMIN
         "traders" -> Source.TRADERS
         else -> Source.SEED
-    },
-    // The server's own `updated_at` is what "last update" means; the local fetch
-    // time only stands in when an older cache predates that column. Showing the
-    // fetch time told the trader a day-old state had just been updated.
-    updatedAtEpochMs = IsoTime.toEpochMs(updatedAt).takeIf { it > 0 }
-        ?: fetchedAt.takeIf { it > 0 },
-    freshness = freshness,
-)
+    }
+    return MarketState(
+        status = when (status.lowercase()) {
+            "open" -> MarketStatus.OPEN
+            "closed" -> MarketStatus.CLOSED
+            else -> MarketStatus.UNKNOWN
+        },
+        opensAtLocal = opensAt,
+        closesAtLocal = closesAt,
+        reasonAr = reasonAr,
+        reasonFr = reasonFr,
+        confidence = confidence,
+        reportersCount = reportersCount,
+        source = src,
+        // The server's own `updated_at` is what "last update" means; the local fetch
+        // time only stands in when an older cache predates that column. Showing the
+        // fetch time told the trader a day-old state had just been updated.
+        //
+        // A seed row has no update to report. Its timestamp is only the moment the
+        // row was created by the schema (and, after a quiet spell, the last vote
+        // that has long since aged out of the consensus), so printing it as
+        // "آخر تحديث" told the trader somebody had confirmed the market at that
+        // hour. Nothing ever did — the source line two rows above says so — and the
+        // card contradicted itself in the one place a glance is supposed to settle.
+        updatedAtEpochMs = if (src == Source.SEED) {
+            null
+        } else {
+            IsoTime.toEpochMs(updatedAt).takeIf { it > 0 } ?: fetchedAt.takeIf { it > 0 }
+        },
+        freshness = freshness,
+    )
+}
 
 private fun ShopDto.toDomain() = Shop(
     id = id,
