@@ -174,6 +174,13 @@ create table if not exists public.market_state (
 insert into public.market_state (market_slug) values ('sntp-el-hamiz')
 on conflict (market_slug) do nothing;
 
+-- Every market gets a state row, not only the one that shipped. A market added to
+-- `markets` without this insert used to have nowhere for the consensus to land,
+-- and the client read an empty set for it forever.
+insert into public.market_state (market_slug)
+select m.slug from public.markets m
+on conflict (market_slug) do nothing;
+
 -- Re-running this file must not fail on a project created by an older version,
 -- where the column was `not null default now()`.
 alter table public.market_state alter column updated_at drop not null;
@@ -514,20 +521,34 @@ begin
      where market_slug = p_slug and expires_at > now();
 
     if found then
-        update public.market_state set
-            status = ov.status,
-            opens_at = ov.opens_at,
-            closes_at = ov.closes_at,
-            reason_ar = ov.reason_ar,
-            reason_fr = ov.reason_fr,
-            confidence = 1.0,
-            reporters_count = 0,
-            source = 'admin',
+        -- An upsert, not an update. `update ... where market_slug = p_slug` wrote
+        -- nothing at all when the row did not exist — a market added to `markets`
+        -- without the matching `market_state` insert (any second market, or a
+        -- project where that one line was skipped) accepted votes, computed a
+        -- consensus, and then discarded it: the client's query returned an empty
+        -- set, `fetchState` fell back to the seed, and the traders' reports never
+        -- reached the screen. The single shipped market happens to have its row,
+        -- which is why this never showed.
+        insert into public.market_state as ms (
+            market_slug, status, opens_at, closes_at, reason_ar, reason_fr,
+            confidence, reporters_count, source, updated_at
+        ) values (
+            p_slug, ov.status, ov.opens_at, ov.closes_at, ov.reason_ar, ov.reason_fr,
+            1.0, 0, 'admin', ov.updated_at
+        )
+        on conflict (market_slug) do update set
+            status = excluded.status,
+            opens_at = excluded.opens_at,
+            closes_at = excluded.closes_at,
+            reason_ar = excluded.reason_ar,
+            reason_fr = excluded.reason_fr,
+            confidence = excluded.confidence,
+            reporters_count = excluded.reporters_count,
+            source = excluded.source,
             -- The age of the decision, not of this cron pass. Stamping now() here
             -- made an official closure issued six hours ago look like it had been
             -- confirmed seconds ago, on the one card people trust most.
-            updated_at = ov.updated_at
-        where market_slug = p_slug;
+            updated_at = excluded.updated_at;
 
         -- An official closure is the most important row in the history; it used
         -- to be lost because this branch returned before writing it.
@@ -623,23 +644,37 @@ begin
        and counted
        and public.observed_at(client_time, server_time) > now() - interval '3 hours';
 
-    update public.market_state set
-        status          = v_status,
-        opens_at        = v_opens,
-        closes_at      = v_closes,
-        reason_ar       = null,
-        reason_fr       = null,
-        confidence      = round(v_conf::numeric, 3),
-        reporters_count = v_devices,
+    -- Same upsert, same reason: the traders' verdict must survive a market whose
+    -- `market_state` row was never created.
+    insert into public.market_state as ms (
+        market_slug, status, opens_at, closes_at, reason_ar, reason_fr,
+        confidence, reporters_count, source, updated_at
+    ) values (
+        p_slug, v_status, v_opens, v_closes, null, null,
+        round(v_conf::numeric, 3), v_devices,
+        case when v_devices > 0 then 'traders' else 'seed' end,
+        v_evidence
+    )
+    on conflict (market_slug) do update set
+        status          = excluded.status,
+        opens_at        = excluded.opens_at,
+        closes_at       = excluded.closes_at,
+        reason_ar       = excluded.reason_ar,
+        reason_fr       = excluded.reason_fr,
+        confidence      = excluded.confidence,
+        reporters_count = excluded.reporters_count,
         -- Provenance has to describe what is actually behind the row. This used to
         -- be hardcoded 'traders', so a market nobody had voted on since it was
         -- created still claimed its source was the traders' votes: the card printed
         -- "لا بيانات اليوم" and, two lines under it, "المصدر: تصويت التجار" —
         -- attribution for votes that do not exist, on the one screen built to be
         -- trusted at a glance. With no counted devices the answer is the seed.
-        source          = case when v_devices > 0 then 'traders' else 'seed' end,
-        updated_at      = coalesce(v_evidence, updated_at)
-    where market_slug = p_slug;
+        source          = excluded.source,
+        -- coalesce, not a plain assignment: a row that has evidence keeps it when a
+        -- quiet pass finds nothing. Losing it turned a day the traders reported into
+        -- «لا بيانات اليوم» the moment the votes aged out of the window, on a day
+        -- the calendar one tap away still recorded as open.
+        updated_at      = coalesce(excluded.updated_at, ms.updated_at);
 
     -- A day nobody reported on is not a day the traders disagreed about. This
     -- function runs from cron every five minutes, so with no reports v_status is
