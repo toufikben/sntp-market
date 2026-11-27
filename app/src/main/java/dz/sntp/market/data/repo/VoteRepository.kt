@@ -111,7 +111,7 @@ class VoteRepository(
         }
 
         val payload = buildJsonObject {
-            put("market_slug", SntpSeed.MARKET_ID)
+            put("market_slug", marketRepository.marketSlug)
             put("status", status)
             opensAt?.let { put("opens_at", it) }
             closesAt?.let { put("closes_at", it) }

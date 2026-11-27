@@ -57,6 +57,19 @@ class MarketRepository(
 
     val isConfigured: Boolean get() = client.isConfigured
 
+    /**
+     * The market this build reads and votes on.
+     *
+     * Exposed because the vote payload had `SntpSeed.MARKET_ID` hardcoded while
+     * every read went through [config]. With the shipped value they coincide, so
+     * the bug was invisible — but the moment the slug is pointed anywhere else
+     * (a second market, a staging project), the app reads one market's state and
+     * writes votes into another: the trader's observation is accepted, counted
+     * into a consensus nobody is watching, and the screen he is looking at never
+     * changes. One source for both directions.
+     */
+    val marketSlug: String get() = config.marketSlug
+
     // ---------------------------------------------------------------- state
 
     suspend fun loadState(): MarketState = withContext(Dispatchers.IO) {
