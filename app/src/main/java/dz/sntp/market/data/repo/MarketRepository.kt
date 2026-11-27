@@ -288,7 +288,17 @@ class MarketRepository(
      * "I could not ask", and it printed "لا سجل بعد" over a record that existed.
      */
     suspend fun loadHistory(): Pair<Map<String, String>, Boolean> = withContext(Dispatchers.IO) {
-        val since = MarketTime.today().minusDays(120).toString()
+        // From the first day of the oldest month the calendar can show, not from
+        // "today minus 120 days". The grid navigates by whole months, so a cut-off
+        // in the middle of one (120 days before the 27th lands on the 30th of July)
+        // left that entire month openable while its earlier days had never been
+        // fetched: they rendered as "no record", which is a claim about the market
+        // made out of a missing query parameter. The floor and the query are now the
+        // same date.
+        val since = MarketTime.today()
+            .minusDays(HISTORY_DAYS)
+            .withDayOfMonth(1)
+            .toString()
         val body = runCatching {
             client.get(
                 "state_history?market_slug=eq.${config.marketSlug}&day=gte.$since&select=day,status&order=day.desc"
@@ -364,6 +374,15 @@ class MarketRepository(
 
     /** A trusted shop number the user can call when the app cannot confirm anything. */
     suspend fun trustedPhone(): String? = loadShops().firstOrNull { it.hasPhone }?.phone
+
+    companion object {
+        /**
+         * How far back the calendar reaches. Shared with [loadHistory]'s query so the
+         * oldest month the grid opens and the oldest day it asked for are the same
+         * date; they used to drift apart and the gap rendered as empty history.
+         */
+        const val HISTORY_DAYS = 120L
+    }
 }
 
 private fun MarketStateDto.toDomain(freshness: Freshness, fetchedAt: Long) = MarketState(

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dz.sntp.market.R
+import dz.sntp.market.data.repo.MarketRepository
 import dz.sntp.market.ui.theme.SntpColors
 import dz.sntp.market.util.MarketTime
 import java.time.LocalDate
@@ -47,11 +48,14 @@ fun HistorySection(history: Map<String, String>, fromCache: Boolean) {
     val today = MarketTime.today()
     val currentMonth = YearMonth.from(today)
 
-    // The repository fetches 120 days, and the grid drew only the current month —
+    // The repository fetches HISTORY_DAYS, and the grid drew only the current month —
     // three quarters of the archive was downloaded, cached, and unreachable. On
     // the 2nd of a month the whole "history" tab was two squares over a real
-    // record. The oldest month the server still answers for is the floor.
-    val oldestMonth = remember { YearMonth.from(today.minusDays(120)) }
+    // record. The oldest month the server still answers for is the floor, and it
+    // comes from the same constant the query uses: the two used to be separate
+    // dates, so the oldest month was openable while its early days had never been
+    // fetched and drew as "no record".
+    val oldestMonth = remember { YearMonth.from(today.minusDays(MarketRepository.HISTORY_DAYS)) }
     var shownMonth by remember { mutableIntStateOf(0) }
     val month = currentMonth.minusMonths(shownMonth.toLong())
     val canGoOlder = month > oldestMonth
