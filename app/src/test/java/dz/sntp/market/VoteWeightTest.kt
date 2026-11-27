@@ -141,6 +141,24 @@ class MarketTimeTest {
     }
 
     @Test
+    fun `stamps use Latin digits whatever the phone's locale`() {
+        // `"%02d:%02d".format(...)` follows the default locale and printed
+        // «٠٥:١٢» on an Arabic phone, on the same line as the server's "07:00".
+        val old = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ar-DZ"))
+            val ms = java.time.ZonedDateTime.now(MarketTime.ZONE)
+                .withHour(5).withMinute(12).withSecond(0).withNano(0)
+                .toInstant().toEpochMilli()
+            assertEquals("05:12", MarketTime.stamp(ms))
+            // Today's stamp is the bare hour, so the same assertion holds.
+            assertEquals("05:12", MarketTime.stampWithDay(ms, java.util.Locale("ar")))
+        } finally {
+            java.util.Locale.setDefault(old)
+        }
+    }
+
+    @Test
     fun `closed day never reports open`() {
         assertFalse(MarketTime.isWithin(null, null, 600))
     }

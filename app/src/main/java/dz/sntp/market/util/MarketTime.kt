@@ -65,8 +65,20 @@ object MarketTime {
     fun stamp(epochMs: Long?): String? {
         if (epochMs == null || epochMs <= 0) return null
         val t = Instant.ofEpochMilli(epochMs).atZone(ZONE)
-        return "%02d:%02d".format(t.hour, t.minute)
+        return hhmm(t)
     }
+
+    /**
+     * Always Latin digits, never the phone's numbering system.
+     *
+     * `"%02d:%02d".format(...)` is locale-sensitive, and on a device whose locale
+     * asks for the Arabic-Indic system it renders «٠٥:١٢». That stamp sits directly
+     * under hours that came from the server as text ("07:00" — "13:00"), so the
+     * same line carried two digit systems, and the one number this screen exists to
+     * convey stopped being scannable at a glance.
+     */
+    private fun hhmm(t: java.time.ZonedDateTime): String =
+        String.format(Locale.US, "%02d:%02d", t.hour, t.minute)
 
     /**
      * The stamp the card and the widget print: an hour alone when the evidence is
@@ -81,7 +93,7 @@ object MarketTime {
     fun stampWithDay(epochMs: Long?, locale: Locale): String? {
         if (epochMs == null || epochMs <= 0) return null
         val t = Instant.ofEpochMilli(epochMs).atZone(ZONE)
-        val hm = "%02d:%02d".format(t.hour, t.minute)
+        val hm = hhmm(t)
         if (t.toLocalDate() == today()) return hm
         val day = t.toLocalDate().format(DateTimeFormatter.ofPattern("d MMMM", locale))
         return "$day · $hm"

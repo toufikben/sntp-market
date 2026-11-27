@@ -55,7 +55,10 @@ fun SettingsSection(
     SettingRow(
         title = stringResource(R.string.settings_notify),
         subtitle = stringResource(R.string.settings_notify_desc) + " · " +
-            isolate("%02d:%02d".format(notifyHour, 0)),
+            // Latin digits, like every other hour on screen: `format` follows the
+            // device locale and printed «٠٥:٠٠» on an Arabic phone, next to hours
+            // that came from the server as Latin text.
+            isolate(String.format(java.util.Locale.US, "%02d:%02d", notifyHour, 0)),
     ) {
         Switch(
             checked = notifyEnabled,
