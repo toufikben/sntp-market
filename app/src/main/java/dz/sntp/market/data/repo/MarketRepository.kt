@@ -410,12 +410,30 @@ class MarketRepository(
         }.getOrDefault(emptyList())
     }
 
+    /**
+     * Whether the phone has internet that actually works, not merely a network
+     * that claims to.
+     *
+     * `NET_CAPABILITY_INTERNET` is what a network *advertises*: a wifi access point
+     * with a captive portal, a hotspot with no upstream, or the market's own
+     * router with a dead uplink all report it. The fetch then fails, the evidence
+     * is still inside the 45-minute window, and the card landed on CACHED — the
+     * one freshness that draws no banner — so it printed «السوق مفتوح» as current
+     * truth over a row read from disk with the server never reached. That is the
+     * situation this app was built for: standing at the gate, wifi connected,
+     * nothing getting through.
+     *
+     * `VALIDATED` is the system's own verdict that traffic reached the internet,
+     * so a captive portal answers false here and the card says «لا اتصال» — which
+     * is exactly what the trader is experiencing.
+     */
     private fun isOnline(): Boolean = runCatching {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
             ?: return@runCatching false
         val net = cm.activeNetwork ?: return@runCatching false
         val caps = cm.getNetworkCapabilities(net) ?: return@runCatching false
-        caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }.getOrDefault(false)
 
     /** A trusted shop number the user can call when the app cannot confirm anything. */
