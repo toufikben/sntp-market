@@ -20,8 +20,7 @@ object PendingVotes {
         runCatching {
             val f = file(context)
             val existing = if (f.exists()) f.readLines().filter { it.isNotBlank() } else emptyList()
-            val trimmed = (existing + payload).takeLast(MAX_ITEMS)
-            f.writeText(trimmed.joinToString("\n"))
+            writeAtomic(context, (existing + payload).takeLast(MAX_ITEMS))
         }
     }
 
@@ -45,12 +44,23 @@ object PendingVotes {
                 f.delete()
                 return@runCatching
             }
-            val tmp = java.io.File(context.filesDir, "$FILE.tmp")
-            tmp.writeText(items.takeLast(MAX_ITEMS).joinToString("\n"))
-            if (!tmp.renameTo(f)) {
-                f.writeText(tmp.readText())
-                tmp.delete()
-            }
+            writeAtomic(context, items)
+        }
+    }
+
+    /**
+     * Write-then-rename. `enqueue` used to truncate the real file and rewrite it,
+     * so a process death between those two steps lost every vote in the queue —
+     * the ones captured inside the market, where there is no signal to record
+     * them again. Only `replace` was atomic; both paths are now.
+     */
+    private fun writeAtomic(context: Context, items: List<String>) {
+        val tmp = java.io.File(context.filesDir, "$FILE.tmp")
+        tmp.writeText(items.takeLast(MAX_ITEMS).joinToString("\n"))
+        val f = file(context)
+        if (!tmp.renameTo(f)) {
+            f.writeText(tmp.readText())
+            tmp.delete()
         }
     }
 
