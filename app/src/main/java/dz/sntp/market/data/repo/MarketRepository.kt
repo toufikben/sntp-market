@@ -68,11 +68,17 @@ class MarketRepository(
             // is old and must carry the stale warning; marking it LIVE because the
             // HTTP call succeeded is exactly the confident lie this app exists to
             // avoid. The age comes from the server's own updated_at.
+            //
+            // A row with a missing or unparseable updated_at is not evidence of
+            // freshness either: `ageMs` used to be null there and fell into the
+            // LIVE branch, so an old schema, a null column or a garbled timestamp
+            // produced "السوق مفتوح" with no caveat at all. No timestamp means no
+            // proof of recency, which is STALE, not LIVE.
             val ageMs = IsoTime.toEpochMs(remote.updatedAt).takeIf { it > 0 }?.let { now - it }
-            val freshness = if (ageMs != null && ageMs > freshWindowMs) {
-                Freshness.STALE
-            } else {
+            val freshness = if (ageMs != null && ageMs <= freshWindowMs) {
                 Freshness.LIVE
+            } else {
+                Freshness.STALE
             }
             val domain = withUsualHours(remote.toDomain(freshness, now), cachedWeekOrSeed())
             prefs.saveCachedState(
