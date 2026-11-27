@@ -22,7 +22,7 @@
 <body>
 <main>
   <h1>سياسة الخصوصية</h1>
-  <p class="muted">تطبيق SNTP · سوق سانتيبي — آخر تحديث: 25 نوفمبر 2026</p>
+  <p class="muted">تطبيق SNTP · سوق سانتيبي — آخر تحديث: 27 نوفمبر 2026</p>
 
   <div class="card">
     <strong>الخلاصة:</strong> لا حساب، لا اسم، لا بريد، لا جهات اتصال. التطبيق يجمع
@@ -31,9 +31,12 @@
 
   <h2>1. ما نجمعه ولماذا</h2>
   <ul>
-    <li><strong>الموقع التقريبي/الدقيق:</strong> عند الضغط على «مفتوح» أو «مغلق» فقط.
-      يُستخدم للتأكد أنك داخل نطاق السوق (1.2 كم) ولحساب وزن التصويت. لا نتتبّعك في
-      الخلفية ولا نجمع موقعك دون تصويت.</li>
+    <li><strong>الموقع:</strong> يُقرأ فقط عند الضغط على «مفتوح» أو «مغلق». يُستخدم
+      للتأكد أنك قرب السوق (وزن كامل داخل 1.2 كم، ووزن أقل حتى 5 كم، وما بعدها
+      لا يُحتسب) ولحساب وزن التصويت. لا نتتبّعك في الخلفية ولا نقرأ موقعك دون تصويت.</li>
+    <li><strong>إحداثيات التصويت:</strong> تُحفظ مع التصويت نفسه (خط الطول والعرض
+      ودقة القياس) لأن الخادم يحسب بها الوزن ويعيد الحساب كل خمس دقائق، وتُحذف مع
+      التصويت بعد 30 يوماً. لا تُستخدم لغير ذلك.</li>
     <li><strong>معرّف جهاز عشوائي:</strong> سلسلة تُنشأ على جهازك عند أول تشغيل،
       لتجنّب التصويت المكرر واستعادة خطتك. ليست معرّفاً حقيقياً للجهاز ولا مرتبطة باسمك.</li>
     <li><strong>التصويت نفسه:</strong> الحالة (مفتوح/مغلق)، الوقت، سبب مختار، والمسافة
@@ -84,7 +87,7 @@
 
   <div dir="ltr" lang="fr">
     <h1>Politique de confidentialité</h1>
-    <p class="muted">Application SNTP — marché de Santébi. Dernière mise à jour : 25 novembre 2026.</p>
+    <p class="muted">Application SNTP — marché de Santébi. Dernière mise à jour : 27 novembre 2026.</p>
 
     <div class="card">
       <strong>En bref :</strong> aucun compte, aucun nom, aucun e-mail, aucun contact.
@@ -94,8 +97,13 @@
 
     <h2>1. Données collectées</h2>
     <ul>
-      <li><strong>Position :</strong> uniquement lors d'un vote, pour vérifier le rayon de
-        1,2 km et pondérer le vote. Aucun suivi en arrière-plan.</li>
+      <li><strong>Position :</strong> lue uniquement lors d'un vote. Elle sert à vérifier la
+        proximité du marché (poids plein dans un rayon de 1,2 km, poids réduit jusqu'à 5 km,
+        aucun au-delà) et à pondérer le vote. Aucun suivi en arrière-plan.</li>
+      <li><strong>Coordonnées du vote :</strong> latitude, longitude et précision sont
+        enregistrées avec le vote, car le serveur les utilise pour le poids et recalcule
+        toutes les cinq minutes. Elles sont supprimées avec le vote après 30 jours et ne
+        servent à rien d'autre.</li>
       <li><strong>Identifiant d'appareil aléatoire :</strong> généré localement, pour éviter
         les votes multiples et restaurer votre offre. Ce n'est pas un identifiant matériel.</li>
       <li><strong>Le vote :</strong> état (ouvert/fermé), heure, motif et distance calculée.</li>
