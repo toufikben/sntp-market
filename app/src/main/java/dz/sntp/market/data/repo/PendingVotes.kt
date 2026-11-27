@@ -34,6 +34,28 @@ object PendingVotes {
     }
 
     /**
+     * Removes the payloads that are finished with, keeping everything else.
+     *
+     * Read-modify-write inside one lock, on purpose. The flush used to drain the
+     * file, post, then drain it again and write back the difference — and a vote
+     * appended between that second read and the write was silently erased. The
+     * votes in this queue were typed inside the market, where there is no signal
+     * to record them again, so losing one is the one failure the trader cannot
+     * recover from. `enqueue` takes the same lock, so it either lands before this
+     * (and is kept) or after (and is appended to the new file).
+     */
+    @Synchronized
+    fun remove(context: Context, done: List<String>) {
+        if (done.isEmpty()) return
+        runCatching {
+            val remaining = drain(context).toMutableList()
+            for (item in done) remaining.remove(item)
+            val f = file(context)
+            if (remaining.isEmpty()) f.delete() else writeAtomic(context, remaining)
+        }
+    }
+
+    /**
      * Replaces the queue with [items]. The old queue is dropped only after the new
      * one is safely written, so a crash during a flush cannot lose the votes
      * collected inside the market — where there is no signal to record them again.

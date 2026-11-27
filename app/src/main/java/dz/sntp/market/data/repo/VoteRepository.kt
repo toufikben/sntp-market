@@ -195,22 +195,16 @@ class VoteRepository(
                 }
             }
 
-            // A vote can be appended to the file while this loop is posting (the
-            // worker runs on its own thread). Writing back the snapshot we drained
-            // would erase it. Re-read the file and remove only the payloads we are
-            // finished with, so anything added mid-flush survives, and so does
-            // everything not yet accepted.
-            val onDisk = PendingVotes.drain(context)
-            val toDrop = done.toMutableList()
-            val kept = onDisk.filterNot { payload ->
-                if (toDrop.contains(payload)) {
-                    toDrop.remove(payload)
-                    true
-                } else {
-                    false
-                }
-            }
-            PendingVotes.replace(context, kept)
+            // Remove only what is finished with, in one locked read-modify-write.
+            //
+            // A vote can be appended while this loop is posting. Draining the file
+            // again and writing back a filtered copy left a window between that
+            // read and the write in which an appended vote vanished unread — and
+            // these votes were typed inside the market, where there is no signal to
+            // record them a second time. `PendingVotes.remove` does the read and the
+            // write under the same lock `enqueue` takes, so a concurrent append is
+            // either seen (and kept) or lands on the new file.
+            PendingVotes.remove(context, done)
             sent
         }
     }
