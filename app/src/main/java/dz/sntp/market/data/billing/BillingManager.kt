@@ -115,11 +115,14 @@ class BillingManager(private val context: Context) {
             .build()
         c.queryPurchasesAsync(params) { result, purchases ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync
+            // Through handle(), not straight to onPurchased: a purchase restored
+            // after a reinstall is very often still unacknowledged, and Play
+            // refunds an unacknowledged purchase after three days. Acknowledging
+            // only in the buy callback meant the user who reinstalled was charged
+            // and then silently refunded.
             purchases
                 .firstOrNull { it.purchaseState == Purchase.PurchaseState.PURCHASED }
-                ?.let { p ->
-                    p.products.firstOrNull()?.let { sku -> onPurchased?.invoke(sku, p.purchaseToken) }
-                }
+                ?.let(::handle)
         }
     }
 
