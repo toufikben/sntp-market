@@ -31,6 +31,9 @@ class BillingManager(private val context: Context) {
 
     private var client: BillingClient? = null
 
+    /** Main thread: Play callbacks and `startConnection` must run there. */
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
     private val _ready = MutableStateFlow(false)
 
     /**
@@ -160,11 +163,6 @@ class BillingManager(private val context: Context) {
         }
     }
 
-    fun close() {
-        client?.endConnection()
-        client = null
-        _ready.value = false
-    }
     private fun queryProducts() {
         val c = client ?: return
         val products = SKUS.map { sku ->
@@ -219,6 +217,4 @@ class BillingManager(private val context: Context) {
         private const val MAX_CONNECT_ATTEMPTS = 4
         private const val CONNECT_RETRY_MS = 2_000L
     }
-
-    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 }
