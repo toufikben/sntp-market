@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import dz.sntp.market.R
 import dz.sntp.market.data.model.Shop
 import dz.sntp.market.ui.theme.SntpColors
+import dz.sntp.market.util.ArabicText
 
 /**
  * The shop directory. Free users see names and categories; the telephone number
@@ -50,11 +51,16 @@ fun ShopsSection(
     onUnlock: (Shop) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
+    // Folded on both sides. The directory is Arabic, and a trader types «شلبي»
+    // or «السعيد» with whichever hamza and final letter the keyboard offers: the
+    // raw `contains` treated every variant as a different word, so a correct
+    // search over seven shop names came back empty and the screen said there was
+    // no match.
     val filtered = remember(query, shops) {
         if (query.isBlank()) shops
         else shops.filter {
-            it.name.contains(query, ignoreCase = true) ||
-                it.category?.contains(query, ignoreCase = true) == true
+            ArabicText.matches(it.name, query) ||
+                it.category?.let { c -> ArabicText.matches(c, query) } == true
         }
     }
 
