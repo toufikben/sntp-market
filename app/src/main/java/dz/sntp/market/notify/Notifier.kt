@@ -43,12 +43,35 @@ object Notifier {
     }
 
     fun canNotify(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(
+        // Two independent switches, and both must be on. The permission is the
+        // Android 13+ one; `areNotificationsEnabled()` is the app-level toggle on
+        // the same settings page (and covers pre-13 entirely). Checking only the
+        // permission meant that a user who turned the app's notifications off in
+        // Settings still passed this gate: `notify()` then did nothing and threw
+        // nothing, so [post] reported success, [MorningWorker] spent the day's only
+        // slot on a notification that never appeared, and turning them back on
+        // later that day produced silence until tomorrow.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
                 context, Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
         }
-        return NotificationManagerCompat.from(context).areNotificationsEnabled()
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
+
+        // A third switch, and the one most likely to be off on the phones this app
+        // targets: the channel itself. Android lets the user silence one channel
+        // while the app stays enabled, and `notify()` on a blocked channel posts
+        // nothing and reports no error — so the worker spent the day's only slot on
+        // a notification nobody would see. Channel importance is also the only way
+        // to notice that the user turned the channel down to "silent".
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val mgr = context.getSystemService(NotificationManager::class.java) ?: return true
+            val channel = mgr.getNotificationChannel(CHANNEL_DAILY) ?: return true
+            if (channel.importance == NotificationManager.IMPORTANCE_NONE) return false
+        }
+        return true
     }
 
     /**

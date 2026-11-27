@@ -143,7 +143,15 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
         // worker whose output the system discards — and it is recorded as our
         // gate, not the user's choice, so granting it in system settings later
         // brings the switch back on by itself.
-        if (granted) vm.setNotifications(true) else vm.gateNotificationsOff()
+        //
+        // "Granted" is not the end of the story either: the app toggle and the
+        // channel can still be off, and `notify()` on those posts nothing silently.
+        if (granted && Notifier.canNotify(context)) {
+            vm.setNotifications(true)
+        } else {
+            vm.gateNotificationsOff()
+            if (granted) openNotificationSettings(context)
+        }
     }
 
     /**
@@ -168,6 +176,20 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
             ) != PackageManager.PERMISSION_GRANTED
 
         if (!needsAsk) {
+            // The permission is only one of the switches. The app toggle and the
+            // channel's importance can still be off, in which case turning this on
+            // would promise an alert the system discards — send the user to the one
+            // page that can change them instead of flipping a dead switch.
+            if (!Notifier.canNotify(context)) {
+                vm.gateNotificationsOff()
+                openNotificationSettings(context)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.settings_notify_blocked),
+                    Toast.LENGTH_LONG,
+                ).show()
+                return
+            }
             vm.setNotifications(true)
             return
         }
@@ -238,6 +260,15 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
             // and mark it as ours, so granting it in settings later restores it.
             vm.gateNotificationsOff()
         } else {
+            // Permission is there, but the notification can still be undeliverable:
+            // the app-level toggle in Settings and the channel's own importance are
+            // separate switches, and `notify()` on a blocked one posts nothing
+            // without an error. The switch used to stay on over all of them, so the
+            // screen promised a 05:00 alert that the system discarded.
+            if (!Notifier.canNotify(context)) {
+                vm.gateNotificationsOff()
+                return@LaunchedEffect
+            }
             // ensure, not schedule: on every launch this effect runs, and
             // re-enqueueing would cancel a run that is due this minute.
             Scheduler.ensureMorning(context, ui.notifyHour, 0)
@@ -262,12 +293,10 @@ fun MainScreen(vm: MainViewModel = rememberMainViewModel()) {
                 // The permission may have been granted while the user was away in
                 // system settings — the one exit from the blocked state. Nothing
                 // tells us when that happens, so it is checked on every return.
-                vm.restoreNotificationsIfGated(
-                    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                        ContextCompat.checkSelfPermission(
-                            context, Manifest.permission.POST_NOTIFICATIONS
-                        ) == PackageManager.PERMISSION_GRANTED
-                )
+                // Full deliverability, not just the permission: a channel the user
+                // muted in Settings would otherwise re-enable a switch over a
+                // notification the system drops.
+                vm.restoreNotificationsIfGated(Notifier.canNotify(context))
             }
         }
         lifecycle.lifecycle.addObserver(observer)
