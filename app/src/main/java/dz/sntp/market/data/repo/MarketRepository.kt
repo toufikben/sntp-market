@@ -98,7 +98,16 @@ class MarketRepository(
                 val evidenceAge = IsoTime.toEpochMs(dto.updatedAt).takeIf { it > 0 }
                     ?.let { now - it }
                     ?: (now - cachedAt)
+                // We are here because the server could not be asked, so the answer on
+                // screen is a cached one either way. Whether the row is 5 minutes old
+                // or 5 hours old, the promise of this app is that it says so: it used
+                // to be CACHED when under 45 minutes and CACHED drew no warning at
+                // all, so the common case — opening the app inside the market, where
+                // there is no signal — showed "السوق مفتوح" with nothing marking it as
+                // the last thing we heard rather than the current truth.
+                val online = isOnline()
                 val freshness = when {
+                    !online -> Freshness.OFFLINE
                     evidenceAge <= freshWindowMs -> Freshness.CACHED
                     else -> Freshness.STALE
                 }

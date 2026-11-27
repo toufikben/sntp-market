@@ -156,7 +156,10 @@ fun DetailRows(ui: UiState) {
         InfoRow("", stringResource(R.string.updated_at, it), dim = true)
     }
 
-    if (s.freshness == Freshness.STALE || s.freshness == Freshness.OFFLINE) {
+    // Any answer that was not verified against the server in this launch carries the
+    // caveat. It used to cover only STALE and OFFLINE, and CACHED — a row read from
+    // disk that the server could not be asked about — drew nothing at all.
+    if (s.freshness != Freshness.LIVE) {
         Spacer(Modifier.height(10.dp))
         Box(
             modifier = Modifier

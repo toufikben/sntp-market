@@ -139,8 +139,7 @@ class StatusWidgetProvider : AppWidgetProvider() {
             // quietest thing on the card. On the app it is a banner; here the only
             // lever is colour, so the warning line takes the amber that means
             // "not confirmed" instead of the grey used for provenance.
-            val stale = state.freshness == Freshness.STALE ||
-                state.freshness == Freshness.OFFLINE
+            val stale = state.freshness != Freshness.LIVE
             v.setTextColor(
                 R.id.widget_trust,
                 context.getColor(
@@ -205,7 +204,12 @@ class StatusWidgetProvider : AppWidgetProvider() {
             // when nothing was ever confirmed.
             if (state.source == Source.SEED) return context.getString(R.string.trust_seed)
 
-            if (state.freshness == Freshness.STALE || state.freshness == Freshness.OFFLINE) {
+            // Same rule as the card: anything not verified against the server in this
+            // launch is the last known information, not the current truth. The widget
+            // used to cover only STALE/OFFLINE, so a CACHED row — the one the widget
+            // reads most often, since it never fetches — showed a bare source label
+            // with no hint that it might be hours old.
+            if (state.freshness != Freshness.LIVE) {
                 return context.getString(R.string.widget_stale)
             }
             val source = when (state.source) {
