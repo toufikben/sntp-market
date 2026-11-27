@@ -1,5 +1,6 @@
 package dz.sntp.market.data.model
 
+import dz.sntp.market.util.MarketTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -62,9 +63,23 @@ data class MarketState(
      * two, and the distinction must not rest on whether an hour happens to be
      * known: the usual timetable is filled in for an unknown state too, and that
      * turned "no data today" into "unconfirmed" as a side effect.
+     *
+     * It also must not rest on [reportersCount] alone. A vote stops counting three
+     * hours after it was observed, and the recompute then writes reporters_count 0
+     * and confidence 0 — so a market the traders reported at 08:00 was labelled
+     * "لا بيانات اليوم" from 11:00 onwards, on a day the calendar one tap away
+     * still recorded as open. That is the app contradicting its own archive, and
+     * telling a trader nobody had said anything on a day he could see they had.
+     *
+     * Evidence from today keeps the claim false: the row's timestamp is when the
+     * newest counted vote was *observed*, and it survives the ageing-out, so it is
+     * exactly the "did anyone report today" fact this needs.
      */
     val hasNoDataToday: Boolean
-        get() = status == MarketStatus.UNKNOWN && reportersCount == 0 && confidence <= 0.0
+        get() = status == MarketStatus.UNKNOWN &&
+            reportersCount == 0 &&
+            confidence <= 0.0 &&
+            !MarketTime.isToday(updatedAtEpochMs)
 
     companion object {
         fun unknown(freshness: Freshness) = MarketState(

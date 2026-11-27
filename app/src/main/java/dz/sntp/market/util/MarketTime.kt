@@ -95,6 +95,12 @@ object MarketTime {
     fun dateLabel(d: LocalDate, locale: Locale): String =
         d.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", locale))
 
+    /** True when [epochMs] falls on today in Africa/Algiers, whatever the phone's zone. */
+    fun isToday(epochMs: Long?): Boolean {
+        if (epochMs == null || epochMs <= 0) return false
+        return Instant.ofEpochMilli(epochMs).atZone(ZONE).toLocalDate() == today()
+    }
+
     /** "نوفمبر 2026" / "novembre 2026" — spelled out, because "11 / 2026" reads badly in RTL. */
     fun monthLabel(ym: java.time.YearMonth, locale: Locale): String =
         ym.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
