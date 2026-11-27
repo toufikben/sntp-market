@@ -19,6 +19,7 @@ import dz.sntp.market.data.model.VoteOutcome
 import dz.sntp.market.data.repo.PendingVotes
 import dz.sntp.market.notify.Notifier
 import dz.sntp.market.notify.Scheduler
+import dz.sntp.market.util.MarketTime
 import dz.sntp.market.widget.StatusWidgetProvider
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -276,6 +277,35 @@ class MainViewModel : ViewModel() {
             prefs.setNotifyEnabled(true)
             _ui.update { it.copy(notifyEnabled = true) }
             Scheduler.scheduleMorning(app, _ui.value.notifyHour, 0)
+        }
+    }
+
+    /**
+     * Puts the daily job back on its hour after a resume, without ever cancelling
+     * a run that is still owed today.
+     *
+     * WorkManager measures each periodic run from when the previous one actually
+     * started, so a run delayed by Doze or the battery killer shifts every run
+     * after it — 05:00 drifts to 07:00 over a few weeks. Only CANCEL_AND_REENQUEUE
+     * resets that anchor (UPDATE keeps the original), and it cancels whatever is
+     * pending, so it is safe in exactly two cases:
+     *
+     *   · before the hour — today's run is not due yet;
+     *   · today's brief already went out — nothing is left to lose today.
+     *
+     * The guard used to be the first case alone, which is the case that almost
+     * never happens: a trader opens this app when he wakes, i.e. after 05:00, so
+     * the drift was corrected for nobody it affects.
+     */
+    fun reanchorMorningIfSafe() {
+        viewModelScope.launch {
+            if (!_ui.value.notifyEnabled) return@launch
+            val hour = _ui.value.notifyHour
+            val toldToday = runCatching { prefs.lastNotifiedDay() == MarketTime.isoDay() }
+                .getOrDefault(false)
+            if (toldToday || Scheduler.isBeforeTarget(hour, 0)) {
+                Scheduler.scheduleMorning(app, hour, 0)
+            }
         }
     }
 

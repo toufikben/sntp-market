@@ -280,6 +280,9 @@ class Prefs(private val context: Context) {
         }
     }
 
+    /** Just the day, for the scheduler's "is today's brief already out" check. */
+    suspend fun lastNotifiedDay(): String? = context.dataStore.data.first()[K.LAST_NOTIFIED_DAY]
+
     /**
      * The last status the user was told by *either* notification. Kept apart from
      * [lastNotified] on purpose: that one answers "did the morning brief go out
