@@ -661,46 +661,62 @@ begin
     -- Scores stay in 40..180: one bad day must not make a trader worthless, and
     -- one good day must not make a stranger authoritative.
     if v_status in ('open','closed') and v_prev_status is distinct from v_status then
-        -- Each report is scored at most once (scored_at), so a state that flips
-        -- back and forth cannot be farmed for reputation. The UPDATE marks them in
-        -- the same statement, which is what makes the guarantee hold.
-        with winners as (
-            update public.reports r set scored_at = now()
+        -- One vote per device is judged: the same one the consensus above was built
+        -- from. Scoring *every* report was the opposite of what the screen promises,
+        -- and it punished the best reporters. A trader who reports "open" at 08:00
+        -- and then "closed" at 08:25, because he watched it shut, agreed with the
+        -- consensus on his newest observation and was still docked 3 for the one he
+        -- had correctly superseded — so diligence cost him score, and the more
+        -- often a trader updated his answer the lower his weight fell.
+        --
+        -- Each report is still scored at most once (scored_at), so a state that
+        -- flips back and forth cannot be farmed. The marking and the reward happen
+        -- in the same statement, which is what makes that guarantee hold.
+        with latest as (
+            select distinct on (r.device_id)
+                r.id, r.device_id, r.status, r.scored_at,
+                -- Observed time, not arrival: a vote queued inside the market and
+                -- flushed at noon must not be scored as if it were cast then.
+                public.observed_at(r.client_time, r.server_time) as seen_at
+            from public.reports r
             where r.market_slug = p_slug
               and r.counted
-              and r.status = v_status
-              and r.scored_at is null
-              -- Observed time, not arrival: a vote queued inside the market and
-              -- flushed at noon must not be scored as if it were cast then.
               and public.observed_at(r.client_time, r.server_time) > now() - interval '3 hours'
-            returning r.device_id
+            -- `id desc` breaks a tie between two votes observed in the same
+            -- second; without it the choice is arbitrary and a device could be
+            -- judged on the older of the two.
+            order by r.device_id, seen_at desc, r.id desc
+        ), judged as (
+            update public.reports r
+               set scored_at = now()
+              from latest l
+             where r.id = l.id
+               -- The newest observation is the one under judgement, and it is
+               -- judged once. Filtering on scored_at *inside* the DISTINCT ON
+               -- above would have made an older, already-superseded vote the
+               -- "latest" the moment the real one was scored.
+               and l.scored_at is null
+               -- Only a *fresh* contradiction is judged at all. A trader who
+               -- reported "open" at 12:30 was right at the time; when the market
+               -- closes at 14:00 his vote is still inside the 3-hour window but
+               -- must not be scored as a dissent, or the honest early reporter is
+               -- punished by hindsight alone. Left unmarked on purpose: if the
+               -- consensus later reaches his answer, that same vote is rewarded
+               -- then, which is the outcome he earned.
+               and (l.status = v_status or l.seen_at > now() - interval '45 minutes')
+            returning l.device_id, l.status, l.seen_at
         )
         update public.devices d set
-            votes_agreed = d.votes_agreed + 1,
-            reputation = least(180, d.reputation + 4)
-        where d.device_id in (select device_id from winners);
-
-        with dissenters as (
-            update public.reports r set scored_at = now()
-            where r.market_slug = p_slug
-              and r.counted
-              and r.status <> v_status
-              and r.scored_at is null
-              -- Only a *fresh* contradiction counts. A trader who reported "open" at
-              -- 12:30 was right at the time; when the market closes at 14:00 his vote
-              -- is still inside the 3-hour window but must not be scored as a dissent,
-              -- or the honest early reporter is punished by hindsight alone.
-              --
-              -- Measured from the observation, not from arrival: the offline queue
-              -- delivers old votes at reconnect, and scoring them by server_time
-              -- punished a trader for the hour his phone had no signal.
-              and public.observed_at(r.client_time, r.server_time) > now() - interval '45 minutes'
-            returning r.device_id
-        )
-        update public.devices d set
-            votes_dissented = d.votes_dissented + 1,
-            reputation = greatest(40, d.reputation - 3)
-        where d.device_id in (select device_id from dissenters);
+            votes_agreed    = d.votes_agreed
+                              + case when j.status = v_status then 1 else 0 end,
+            votes_dissented = d.votes_dissented
+                              + case when j.status <> v_status then 1 else 0 end,
+            reputation = least(180, greatest(40,
+                d.reputation
+                + case when j.status = v_status then 4 else -3 end
+            ))
+        from judged j
+        where d.device_id = j.device_id;
     end if;
 end;
 $$;
