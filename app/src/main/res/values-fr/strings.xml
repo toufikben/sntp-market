@@ -12,6 +12,7 @@
     <string name="opens_at">Ouvre à %1$s</string>
     <string name="closes_at">Ferme à %1$s</string>
     <string name="usual_hours">Habituel : %1$s — %2$s</string>
+    <string name="usual_opens_at">Habituel : ouvre à %1$s</string>
     <string name="reason_label">Raison</string>
     <string name="confidence_label">Fiabilité</string>
     <string name="confirmers_count">%1$d commerçants ont confirmé</string>

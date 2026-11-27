@@ -119,7 +119,10 @@ private fun primaryTimeLine(s: MarketState): String? = when (s.status) {
         if (open != null && close != null) {
             stringResource(R.string.usual_hours, "\u2066$open\u2069", "\u2066$close\u2069")
         } else if (open != null) {
-            stringResource(R.string.opens_at, "\u2066$open\u2069")
+            // «المعتاد», not the bare «يفتح 07:00» used for a confirmed open: this
+            // hour is the usual timetable, which is the whole reason the state is
+            // unconfirmed. The two-value branch was labelled and this one was not.
+            stringResource(R.string.usual_opens_at, "\u2066$open\u2069")
         } else {
             null
         }

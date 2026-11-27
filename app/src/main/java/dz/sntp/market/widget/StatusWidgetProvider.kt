@@ -183,15 +183,14 @@ class StatusWidgetProvider : AppWidgetProvider() {
                 MarketStatus.UNKNOWN -> {
                     val o = state.opensAtLocal
                     val c = state.closesAtLocal
-                    if (o != null && c != null) {
-                        context.getString(R.string.usual_hours, isolate(o), isolate(c))
-                    } else {
-                        // Empty, not "لا بيانات اليوم". When there truly is no data
-                        // the status word already says it and this line is suppressed
-                        // for repeating it; the only way to reach here with a real
-                        // second line is a state traders reported and could not agree
-                        // on, where "no data today" would contradict the word above it.
-                        ""
+                    when {
+                        o != null && c != null ->
+                            context.getString(R.string.usual_hours, isolate(o), isolate(c))
+                        // Same label the card uses. This used to print nothing at all
+                        // when only the opening hour was known, so the widget went
+                        // blank over an hour the app was showing.
+                        o != null -> context.getString(R.string.usual_opens_at, isolate(o))
+                        else -> ""
                     }
                 }
             }

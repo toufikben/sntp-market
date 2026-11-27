@@ -14,6 +14,13 @@
     <string name="opens_at">يفتح %1$s</string>
     <string name="closes_at">يغلق %1$s</string>
     <string name="usual_hours">المعتاد: %1$s — %2$s</string>
+    <!--
+      An unconfirmed state with only the opening hour known. The card used to reuse
+      «يفتح %1$s» here — the sentence it prints for a confirmed "open" — so a
+      timetable guess read as a fact, while the two-value line two words away said
+      «المعتاد». Same information, two different claims.
+    -->
+    <string name="usual_opens_at">المعتاد: يفتح %1$s</string>
     <string name="reason_label">السبب</string>
     <string name="confidence_label">نسبة الموثوقية</string>
     <string name="confirmers_count">%1$d تاجراً أكّدوا</string>
