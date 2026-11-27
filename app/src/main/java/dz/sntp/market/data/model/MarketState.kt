@@ -73,18 +73,31 @@ data class MarketState(
     /**
      * Whether this answer needs a caveat, and which one.
      *
-     * A seed row is [Caveat.NONE]: it is the usual timetable, not a report that
-     * has aged, so «آخر معلومة معروفة — غير مؤكدة الآن» claimed a confirmation
-     * had existed and lapsed. The card printed that banner directly under «لا
-     * بيانات اليوم», two lines that cannot both be true, while the widget and the
-     * notification already checked the seed *before* freshness. The card was the
-     * only surface that did not.
+     * Keyed on the age of the evidence, not on who read it. [Freshness.LIVE] and
+     * [Freshness.CACHED] both mean "the newest counted observation is inside the
+     * 45-minute window" — the difference between them is whether this process
+     * fetched it or read it off disk, which is not a fact about the market and not
+     * something a trader can act on.
+     *
+     * That distinction used to decide the banner, and it broke the widget
+     * completely: [dz.sntp.market.data.repo.MarketRepository.cachedStateOnly] never
+     * returns LIVE — it cannot, it never fetches — so the widget printed «آخر
+     * معلومة معروفة — غير مؤكدة الآن» on every redraw, in the warning colour, over
+     * a row the morning worker had written three minutes earlier. The one surface
+     * that is guaranteed to be there at 05:00 was the one where the warning meant
+     * nothing, so it could not warn about the case that matters: evidence from
+     * yesterday.
+     *
+     * A seed row is [Caveat.NONE] too: it is the usual timetable, not a report that
+     * has aged, so the banner claimed a confirmation had existed and lapsed. The
+     * card printed it directly under «لا بيانات اليوم» — two lines that cannot both
+     * be true.
      */
     val caveat: Caveat
         get() = when {
             source == Source.SEED -> Caveat.NONE
             freshness == Freshness.OFFLINE -> Caveat.OFFLINE
-            freshness != Freshness.LIVE -> Caveat.STALE
+            freshness == Freshness.STALE -> Caveat.STALE
             else -> Caveat.NONE
         }
 

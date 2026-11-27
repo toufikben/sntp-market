@@ -118,17 +118,28 @@ class MarketRepository(
                     ?.let { now - it }
                     ?: (now - cachedAt)
                 // We are here because the server could not be asked, so the answer on
-                // screen is a cached one either way. Whether the row is 5 minutes old
-                // or 5 hours old, the promise of this app is that it says so: it used
-                // to be CACHED when under 45 minutes and CACHED drew no warning at
-                // all, so the common case — opening the app inside the market, where
-                // there is no signal — showed "السوق مفتوح" with nothing marking it as
-                // the last thing we heard rather than the current truth.
+                // screen is a cached one either way. The age is the fact that decides
+                // how it is labelled, and it is the *evidence* age — the row's own
+                // updated_at — not the moment the cache was written.
+                //
+                // Two reasons to warn, and only one of them is about the connection:
+                //   • the evidence is older than the window the server itself still
+                //     counts at full weight → STALE, and that is the warning;
+                //   • the evidence is current but we cannot refresh it → OFFLINE, which
+                //     is worth saying because it is temporary and actionable (move to
+                //     signal), and because it stops the user blaming the market for an
+                //     app that is not updating.
+                // CACHED is deliberately left with no warning: it means "inside the
+                // window, read from disk", which is a fact about this process, not
+                // about the market. Keying a banner on it made the home-screen widget
+                // — which can never fetch, so it is never LIVE — print the stale
+                // warning on every single redraw, in the warning colour, over a row
+                // written three minutes earlier.
                 val online = isOnline()
                 val freshness = when {
+                    evidenceAge > freshWindowMs -> Freshness.STALE
                     !online -> Freshness.OFFLINE
-                    evidenceAge <= freshWindowMs -> Freshness.CACHED
-                    else -> Freshness.STALE
+                    else -> Freshness.CACHED
                 }
                 return@withContext withUsualHours(
                     dto.toDomain(freshness),
@@ -148,6 +159,13 @@ class MarketRepository(
      * widget uses this: it must show the same freshness the app would show for the
      * same row, so the freshness rules live in exactly one place — here, shared
      * with [loadState]'s offline branch.
+     *
+     * It never returns [Freshness.LIVE], and that is not a defect — it cannot
+     * fetch. It used to return STALE for everything past the window and CACHED
+     * inside it, and the UI keyed the stale warning on `!= LIVE`, so the widget
+     * carried «آخر معلومة معروفة — غير مؤكدة الآن» on every redraw no matter how
+     * fresh the row was. The caveat is now keyed on [MarketState.caveat], which
+     * reads STALE as the age warning and CACHED as nothing at all.
      *
      * Returns null when nothing has ever been cached, which is different from
      * "cached and unknown".

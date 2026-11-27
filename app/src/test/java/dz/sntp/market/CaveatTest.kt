@@ -9,16 +9,22 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * The banner under the card. Its whole job is to say "this was not verified just
- * now" — so it must not appear over an answer that was never verified in the
- * first place, and must not be missing over one that was verified earlier.
+ * The banner under the card, and the third line on the widget.
  *
- * The regression: a seed row (the usual timetable, read when the server could not
- * be reached) printed «آخر معلومة معروفة — غير مؤكدة الآن» directly under «لا
- * بيانات اليوم». The first line claimed a confirmation had existed and lapsed;
- * the second said nobody had ever reported. The widget and the notification
- * already checked the seed before freshness — the card was the only surface that
- * did not, and it is the one people read.
+ * Its job is to say "this answer may no longer be true" — so it must fire on
+ * evidence that has aged, and must stay quiet over evidence that has not, however
+ * that evidence reached the screen.
+ *
+ * Two regressions are pinned here:
+ *
+ *  • The widget printed «آخر معلومة معروفة — غير مؤكدة الآن» on *every* redraw, in
+ *    the warning colour. The rule was `freshness != LIVE`, and the widget reads the
+ *    cache by design, so it is never LIVE — a row the morning worker had written
+ *    three minutes earlier was labelled as expired. The one surface guaranteed to
+ *    be there at 05:00 was the one where the warning meant nothing.
+ *
+ *  • A seed row (the usual timetable) printed the same line, claiming a
+ *    confirmation had existed and lapsed, directly under «لا بيانات اليوم».
  */
 class CaveatTest {
 
@@ -40,13 +46,20 @@ class CaveatTest {
     )
 
     @Test
-    fun `a live answer from the traders carries no caveat`() {
+    fun `a live answer carries no caveat`() {
         assertEquals(Caveat.NONE, state().caveat)
     }
 
     @Test
-    fun `an answer read from disk carries the stale caveat`() {
-        assertEquals(Caveat.STALE, state(freshness = Freshness.CACHED).caveat)
+    fun `a fresh row read from disk is not a warning`() {
+        // CACHED means "inside the 45-minute window, read from disk". Whether this
+        // process fetched it is not a fact about the market, and the widget can
+        // never be LIVE — keying the banner on that made it permanent there.
+        assertEquals(Caveat.NONE, state(freshness = Freshness.CACHED).caveat)
+    }
+
+    @Test
+    fun `evidence past the window carries the stale caveat`() {
         assertEquals(Caveat.STALE, state(freshness = Freshness.STALE).caveat)
     }
 
@@ -79,7 +92,7 @@ class CaveatTest {
         // but "we could not re-read this" is a fact about our connection, not about
         // who wrote the row, so the caveat stays.
         assertEquals(Caveat.NONE, state(source = Source.ADMIN).caveat)
-        assertEquals(Caveat.STALE, state(source = Source.ADMIN, freshness = Freshness.CACHED).caveat)
+        assertEquals(Caveat.STALE, state(source = Source.ADMIN, freshness = Freshness.STALE).caveat)
         assertEquals(Caveat.OFFLINE, state(source = Source.ADMIN, freshness = Freshness.OFFLINE).caveat)
     }
 }
