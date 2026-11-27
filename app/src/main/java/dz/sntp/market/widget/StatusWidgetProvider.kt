@@ -18,6 +18,7 @@ import dz.sntp.market.util.MarketTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The home-screen answer, for the phones this app is actually installed on.
@@ -70,8 +71,14 @@ class StatusWidgetProvider : AppWidgetProvider() {
          * alive long enough to receive it, which is not guaranteed right after a
          * refresh on a phone that reclaims memory aggressively — the widget would
          * keep showing the previous state until the launcher's own tick.
+         *
+         * Suspends until the redraw is written, on purpose. It used to launch its
+         * own unowned coroutine and return, so [MorningWorker] finished doWork and
+         * the system was free to tear the process down while the DataStore read was
+         * still pending — on precisely the Xiaomi/Oppo phones that kill background
+         * work, which is why the 05:00 widget update was the one that went missing.
          */
-        fun updateAll(context: Context) {
+        suspend fun updateAll(context: Context) {
             val mgr = AppWidgetManager.getInstance(context)
             val ids = mgr.getAppWidgetIds(
                 ComponentName(context, StatusWidgetProvider::class.java)
@@ -79,7 +86,7 @@ class StatusWidgetProvider : AppWidgetProvider() {
             if (ids.isEmpty()) return
 
             val app = context.applicationContext as? SntpApp ?: return
-            CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.IO) {
                 val state = runCatching { app.marketRepository.cachedStateOnly() }.getOrNull()
                 val views = build(context, state)
                 ids.forEach { id ->
