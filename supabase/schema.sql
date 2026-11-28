@@ -634,17 +634,32 @@ begin
 
         -- وقت الفتح/الإغلاق من أحدث تصويت في الجهة الفائزة
         if v_status in ('open','closed') then
-            select opens_at, closes_at into v_opens, v_closes
-            from public.reports
-            where market_slug = p_slug
-              and counted
-              and status = v_status
-              and public.observed_at(client_time, server_time) > now() - interval '3 hours'
+            -- Per column, and the newest row that actually carries a value — not the
+            -- newest row.
+            --
             -- The hours must come from the most recently *observed* vote, not the
             -- most recently delivered one: a queued vote from 06:00 arriving at
             -- noon would otherwise overwrite the hours a trader reported at 11:45.
-            order by public.observed_at(client_time, server_time) desc
-            limit 1;
+            -- But `limit 1` took that newest row whole, nulls included, and a
+            -- "closed" vote normally carries no hour at all: one trader tapping
+            -- «مغلق» at 14:05 erased the closing time another trader reported at
+            -- 14:00 — the card dropped from «يغلق 14:00» back to a bare «مغلق», and
+            -- the calendar lost it too. Each column keeps its own newest non-null
+            -- value; a vote that knows only one hour still contributes that one.
+            select
+                (array_agg(opens_at  order by seen_at desc) filter (where opens_at  is not null))[1],
+                (array_agg(closes_at order by seen_at desc) filter (where closes_at is not null))[1]
+            into v_opens, v_closes
+            from (
+                select
+                    r.opens_at, r.closes_at,
+                    public.observed_at(r.client_time, r.server_time) as seen_at
+                from public.reports r
+                where r.market_slug = p_slug
+                  and r.counted
+                  and r.status = v_status
+                  and public.observed_at(r.client_time, r.server_time) > now() - interval '3 hours'
+            ) h;
         end if;
     end if;
 
