@@ -646,20 +646,27 @@ begin
             -- 14:00 — the card dropped from «يغلق 14:00» back to a bare «مغلق», and
             -- the calendar lost it too. Each column keeps its own newest non-null
             -- value; a vote that knows only one hour still contributes that one.
+            -- Two scalar subqueries, not one row and not a CTE: plpgsql substitutes
+            -- `into` only in a plain SELECT, and each column needs its own "newest
+            -- non-null" anyway.
             select
-                (array_agg(opens_at  order by seen_at desc) filter (where opens_at  is not null))[1],
-                (array_agg(closes_at order by seen_at desc) filter (where closes_at is not null))[1]
-            into v_opens, v_closes
-            from (
-                select
-                    r.opens_at, r.closes_at,
-                    public.observed_at(r.client_time, r.server_time) as seen_at
-                from public.reports r
-                where r.market_slug = p_slug
-                  and r.counted
-                  and r.status = v_status
-                  and public.observed_at(r.client_time, r.server_time) > now() - interval '3 hours'
-            ) h;
+                (select r.opens_at from public.reports r
+                  where r.market_slug = p_slug
+                    and r.counted
+                    and r.status = v_status
+                    and r.opens_at is not null
+                    and public.observed_at(r.client_time, r.server_time) > now() - interval '3 hours'
+                  order by public.observed_at(r.client_time, r.server_time) desc
+                  limit 1),
+                (select r.closes_at from public.reports r
+                  where r.market_slug = p_slug
+                    and r.counted
+                    and r.status = v_status
+                    and r.closes_at is not null
+                    and public.observed_at(r.client_time, r.server_time) > now() - interval '3 hours'
+                  order by public.observed_at(r.client_time, r.server_time) desc
+                  limit 1)
+            into v_opens, v_closes;
         end if;
     end if;
 
