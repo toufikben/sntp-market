@@ -207,6 +207,21 @@ class StatusWidgetProvider : AppWidgetProvider() {
         private fun isolate(time: String): String = "\u2066$time\u2069"
 
         /**
+         * The locale the widget's own strings are in, not the phone's.
+         *
+         * This app ships `values/` (Arabic) and `values-fr/`. A phone set to
+         * English shows Arabic text while its locale is "en", so formatting the
+         * day name with the device locale printed an English month inside an
+         * Arabic line — the same trap [displayLocale] avoids on the card, and the
+         * widget cannot call that one: it is `@Composable`.
+         */
+        private fun widgetLocale(context: Context): java.util.Locale {
+            val locales = context.resources.configuration.locales
+            val lang = if (locales.isEmpty) "" else locales[0].language
+            return if (lang == "fr") java.util.Locale.FRENCH else java.util.Locale.forLanguageTag("ar-DZ")
+        }
+
+        /**
          * Third line: where the answer came from, and how old it is when that
          * matters. A stale row keeps the status word but says out loud that it is
          * no longer confirmed.
@@ -225,7 +240,7 @@ class StatusWidgetProvider : AppWidgetProvider() {
                 Source.TRADERS -> context.getString(R.string.trust_traders)
                 Source.SEED -> context.getString(R.string.trust_seed)
             }
-            val stamp = MarketTime.stamp(state.updatedAtEpochMs)
+            val stamp = MarketTime.stampWithDay(state.updatedAtEpochMs, widgetLocale(context))
                 ?: return source
             // Same bidi reason as the hours: a bare HH:mm in an Arabic line.
             return "$source · ${isolate(stamp)}"
