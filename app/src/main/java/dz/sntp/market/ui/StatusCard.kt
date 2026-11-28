@@ -161,7 +161,20 @@ fun DetailRows(ui: UiState) {
     )
 
     if (s.reportersCount > 0) {
-        InfoRow("", stringResource(R.string.confirmers_count, s.reportersCount))
+        // «أكّدوا» only when the row actually carries a verdict. `reporters_count`
+        // is every counted voter — dissenters included — and it is printed whenever
+        // it is above zero, so an «غير مؤكد» row (below the 60% threshold, or fewer
+        // than three devices) read «3 تاجراً أكّدوا» two lines under the word
+        // "unconfirmed": the app confirming itself out of its own doubt. The number
+        // is the same fact; the verb has to follow the verdict.
+        val confirmed = s.status != MarketStatus.UNKNOWN
+        InfoRow(
+            "",
+            stringResource(
+                if (confirmed) R.string.confirmers_count else R.string.reporters_count,
+                s.reportersCount,
+            ),
+        )
     }
 
     InfoRow("", sourceText(s), dim = true)

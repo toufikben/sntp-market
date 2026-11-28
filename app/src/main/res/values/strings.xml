@@ -31,6 +31,14 @@
     <string name="usual_note_label">ملاحظة معتادة</string>
     <string name="confidence_label">نسبة الموثوقية</string>
     <string name="confirmers_count">%1$d تاجراً أكّدوا</string>
+    <!--
+      The same number, on a row that is NOT confirmed. reporters_count is every
+      counted voter, dissenters included, and it is printed whenever it is above
+      zero — so an «غير مؤكد» row (below the 60% threshold, or fewer than three
+      devices) read «3 تاجراً أكّدوا» two lines under the word "unconfirmed". The
+      count is a fact either way; only the verb has to match the verdict.
+    -->
+    <string name="reporters_count">%1$d تاجراً صوّتوا</string>
     <string name="updated_at">آخر تحديث %1$s</string>
     <string name="stale_warning">آخر معلومة معروفة — غير مؤكدة الآن</string>
     <string name="offline_warning">لا اتصال — تُعرض آخر معلومة محفوظة</string>

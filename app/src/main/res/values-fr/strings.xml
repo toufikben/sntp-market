@@ -17,6 +17,8 @@
     <string name="usual_note_label">Note habituelle</string>
     <string name="confidence_label">Fiabilité</string>
     <string name="confirmers_count">%1$d commerçants ont confirmé</string>
+    <!-- Same number, on a row that is not confirmed: the count includes dissenters. -->
+    <string name="reporters_count">%1$d commerçants ont voté</string>
     <string name="updated_at">Mis à jour %1$s</string>
     <string name="stale_warning">Dernière info connue — non confirmée maintenant</string>
     <string name="offline_warning">Hors ligne — dernière info enregistrée</string>
