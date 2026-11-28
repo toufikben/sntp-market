@@ -474,7 +474,15 @@ begin
                 else excluded.status
             end,
             opens_at   = coalesce(public.state_history.opens_at, excluded.opens_at),
-            closes_at  = excluded.closes_at,
+            -- coalesce on this side too, and it was the side that lost data. The
+            -- comment above says the closing time is kept, and the code dropped it:
+            -- a later verdict that carried no hour (a "closed" vote normally has
+            -- none) wrote null over the closing time an earlier vote had reported,
+            -- so the calendar kept the opening hour and forgot the closing one —
+            -- half a day, in the archive the trader opens to see how long the
+            -- market actually stayed open. A newer hour still wins when it exists;
+            -- only the null stops erasing.
+            closes_at  = coalesce(excluded.closes_at, public.state_history.closes_at),
             -- Confidence must describe the status stored beside it. Taking the
             -- greatest of the two kept the *previous* status's confidence when the
             -- day flipped (a 0.8 "open" followed by a 0.6 "closed" was recorded as
