@@ -4,6 +4,7 @@ import dz.sntp.market.data.model.Freshness
 import dz.sntp.market.data.model.MarketState
 import dz.sntp.market.data.model.MarketStatus
 import dz.sntp.market.data.model.Source
+import dz.sntp.market.util.MarketTime
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -40,6 +41,18 @@ class NoDataTodayTest {
     private fun hoursAgo(h: Long) =
         Instant.now().minus(h, ChronoUnit.HOURS).toEpochMilli()
 
+    /**
+     * 08:00 *today in the market's timezone*, not "eight hours ago".
+     *
+     * The test asserted a day reported at 08:00 and aged out by 16:00, and used
+     * `hoursAgo(8)` for it. At 05:46 UTC that is 22:45 the previous evening in
+     * Algiers, so the timestamp was yesterday's and `hasNoDataToday` correctly
+     * came out true — the test failed on the hour CI happened to run, not on the
+     * behaviour it was written to pin.
+     */
+    private fun todayAt(hour: Int): Long =
+        MarketTime.today().atTime(hour, 0).atZone(MarketTime.ZONE).toInstant().toEpochMilli()
+
     @Test
     fun `a market nobody has ever reported has no data`() {
         assertTrue(state().hasNoDataToday)
@@ -55,7 +68,7 @@ class NoDataTodayTest {
         // This is the regression: votes expire from the consensus after three
         // hours, so the afternoon recompute writes 0 reporters and 0 confidence
         // over a day the calendar still records as confirmed.
-        assertFalse(state(updatedAt = hoursAgo(8)).hasNoDataToday)
+        assertFalse(state(updatedAt = todayAt(8)).hasNoDataToday)
     }
 
     @Test
